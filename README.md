@@ -21,12 +21,12 @@ Model outputs from **WACCM6/CESM2** are stored within `results_cloud.zip`. The c
 ### Launch Location Configurations
 | ID | Latitude | Longitude | Location Description |
 | :--- | :--- | :--- | :--- |
-| **RU** | 70 | 120 | High Latitude (North) |
-| **UK** | 55 | -1.6 | Mid-High Latitude (North) |
+| **RU** | 70 | 120 | Russia |
+| **UK** | 55 | -1.6 | The United Kingdom |
 | **CC** | 28.47 | -80.57 | Cape Canaveral |
-| **EQ** | 0 | -50 | Equatorial |
-| **AU** | -29 | 153.5 | Mid-Latitude (South) |
-| **SA** | -55 | -68 | High Latitude (South) |
+| **EQ** | 0 | -50 | French Guiana |
+| **AU** | -29 | 153.5 | Australia |
+| **SA** | -55 | -68 | South America |
 
 ---
 
