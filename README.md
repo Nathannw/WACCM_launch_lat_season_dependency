@@ -1,29 +1,54 @@
 # WACCM_launch_lat_season_dependency
-This repository contains emission file generation scripts, WACCM6/CESM2 model outputs, and analysis code used to produce figures and datasets for the manuscript “Dependence of Atmospheric and Climate Impacts on Launch Latitude and Seasonal Variation in Rocket Emissions.”
-# Data discription
-Output from WACCM6/CESM2 stored inside results_cloud.zip 
-all_year refers to Year-Round configuration
-summer refers to Summer-Only configuration
-winter refers to Winter-Only configuration
 
-"RU" refers to {"lat": 70, "lon": 120} configuration
-"UK" refers to {"lat": 55, "lon": -1.6} configuration
-"CC" refers to {"lat": 28.47, "lon": -80.57} configuration
-"EQ" refers to {"lat": 0, "lon": -50} configuration
-"AU" refers to {"lat": -29, "lon": 153.5} configuration
-"SA" refers to {"lat": -55, "lon": -68} configuration
+This repository contains emission file generation scripts, WACCM6/CESM2 model outputs, and analysis code used to produce figures and datasets for the manuscript: **“Dependence of Atmospheric and Climate Impacts on Launch Latitude and Seasonal Variation in Rocket Emissions.”**
 
+## Requirements
+* **Python:** ≥ 3.8
+* **Key Libraries:**
+    * `numpy`
+    * `xarray`
+    * `matplotlib`
+    * `netcdf4`
 
-# To generate emission files
-Run create_emission.py
-This create_emission.py takes the launch location (latitude, longitude) and launch season. This will generate 11-70km BC emission of 30Gg per year.
-def emission_profile function inside analysis/emission_funcs.py will read Falcon9_trajectory_THAICOM_8.csv, where it calculates altitude profile of Falcon9 emission before applying emission indices
+## Data Description
+Model outputs from **WACCM6/CESM2** are stored within `results_cloud.zip`. The configurations are categorized by season and location:
 
-# To run data analysis
-In order to run the analysis, results_cloud.zip has to be decompressed.
-Run main.py
-This main.py calls the fuctions under analysis folder. It begins with reading the results data stored under results_cloud directory. Then stores the required data for analysis in .txt format under data_file directory.
-The plots will then be generated and stored under fig directory.
-Finally it will run additional data used to construct Tables in manuscript.
+### Seasonal Configurations
+* `all_year`: Year-Round configuration
+* `summer`: Summer-Only configuration
+* `winter`: Winter-Only configuration
+
+### Launch Location Configurations
+| ID | Latitude | Longitude | Location Description |
+| :--- | :--- | :--- | :--- |
+| **RU** | 70 | 120 | High Latitude (North) |
+| **UK** | 55 | -1.6 | Mid-High Latitude (North) |
+| **CC** | 28.47 | -80.57 | Cape Canaveral |
+| **EQ** | 0 | -50 | Equatorial |
+| **AU** | -29 | 153.5 | Mid-Latitude (South) |
+| **SA** | -55 | -68 | High Latitude (South) |
+
+---
+
+## Generating Emission Files
+To generate emission files, run:
+'create_emission.py'
+The 'create_emission.py' script requires the launch location (latitude and longitude) and the launch season as inputs. This generates Black Carbon emissions between 11–70 km at a total rate of 30 Gg per year.
+
+The `emission_profile` function inside `analysis/emission_funcs.py` reads `Falcon9_trajectory_THAICOM_8.csv`. It calculates the altitude profile of Falcon 9 emissions before applying the relevant emission indices.
+
+---
+
+## Running the Analysis
+1.  **Decompress Data:** `results_cloud.zip` must be decompressed before starting the analysis.
+2.  **Execute Analysis:**
+    ```bash
+    python main.py
+    ```
+    The `main.py` script invokes the functions located in the `analysis/` folder. It performs the following steps:
+    * Reads the results data stored in the `results_cloud/` directory.
+    * Processes and stores the required analysis data in `.txt` format within the `data_file/` directory.
+    * Generates and saves plots in the `fig/` directory.
+    * Computes additional data used to construct the tables presented in the manuscript.
 
 
