@@ -2,11 +2,7 @@ import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import os
-import pandas as pd
-from matplotlib.colors import LinearSegmentedColormap
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
 
@@ -64,7 +60,7 @@ def vertical_plot_delta_no_sig(nc, data, label, name,
     # Layout and save (vector format, high res)
     plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=12, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f"fig/QRS/QRS_{name}.pdf", bbox_inches="tight")
+    plt.savefig(f"fig/BC/BC_{name}.pdf", bbox_inches="tight")
     # plt.show()
 
 def vertical_plot_delta_sig(nc, data, label, name, 
@@ -129,7 +125,7 @@ def vertical_plot_delta_sig(nc, data, label, name,
     # Layout and save (vector format, high res)
     plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=12, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f"fig/BC/BC_{name}.pdf", bbox_inches="tight")
+    plt.savefig(f"fig/QRS/QRS_{name}.pdf", bbox_inches="tight")
     # plt.show()
 
 def avg_case_data(dir_case, response, range_min, range_max):

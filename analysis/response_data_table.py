@@ -4,13 +4,7 @@ import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 import os
-import seaborn as sns
-from scipy.stats import ttest_1samp, ttest_ind
-from datetime import datetime, timedelta
-from scipy.stats import f_oneway
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import scipy.stats as stats
 
 case_list_initial = ['all_year', 'all_year', 'summer', 'winter', 'all_year' ,'all_year', 'summer', 'winter', 'all_year', 'summer', 'winter','all_year','all_year', 'summer', 'winter']
@@ -134,7 +128,7 @@ def main():
 
         # Write all the accumulated data out to respective text files
         print("\nWriting output to .txt files...")
-        write_to_file(f'{response}_table.txt', results)
+        write_to_file(f'data_file/{response}_table.txt', results)
         print("Process Complete!")
 
 if __name__ == "__main__":

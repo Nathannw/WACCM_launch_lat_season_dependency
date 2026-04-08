@@ -2,10 +2,8 @@ import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 import os
 import pandas as pd
-from matplotlib.colors import LinearSegmentedColormap
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
 

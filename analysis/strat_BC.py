@@ -2,13 +2,10 @@ import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 import os
 from scipy.optimize import curve_fit
 from analysis.emission_funcs import *
 from analysis.func import *
-import scipy.stats as stats
-import ast
 
 case_list_initial = ['all_year', 'all_year', 'summer', 'winter', 'all_year', 'summer', 'winter', 'all_year', 'summer', 'winter','all_year', 'summer', 'winter','all_year', 'all_year']
 location_list = ['CC_BC_only', 'SA', 'SA', 'SA', 'CC', 'CC', 'CC', 'RU', 'RU', 'RU', 'EQ', 'EQ', 'EQ', 'UK', 'AU']

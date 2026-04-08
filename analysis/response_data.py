@@ -2,15 +2,8 @@ from analysis.emission_funcs import *
 from analysis.func import *
 import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
-import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 import os
-import seaborn as sns
-from scipy.stats import ttest_1samp, ttest_ind
-from datetime import datetime, timedelta
-from scipy.stats import f_oneway
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import scipy.stats as stats
 
 # To generate climate responses data

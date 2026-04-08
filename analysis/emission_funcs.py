@@ -1,6 +1,5 @@
 from netCDF4 import Dataset
 import numpy as np
-from scipy.spatial.distance import cdist
 import pandas as pd
 from datetime import datetime, timedelta
 from mpl_toolkits.basemap import Basemap

@@ -4,15 +4,8 @@ import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 import os
-import seaborn as sns
 from scipy.stats import ttest_1samp, ttest_ind
-from datetime import datetime, timedelta
-from scipy.stats import f_oneway
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import scipy.stats as stats
-import sys
 
 cases = {
     'RU':    {'dir': 'JUL_8_30Gg_all_year_RU',          'color': 'black',       'label': '70°N',         'ls': '-'},
@@ -32,19 +25,7 @@ titles_delta = [
     'Stratospheric Cloud Liquid Content Anomaly (Case – Control) (kg/kg)'
 ]
 
-responses = ['T', 'O3']
-
-def confidence(data, name, dof):
-    # Calculate statistics
-    mean = np.mean(data)
-    data_sd = np.mean(data, axis = 1)
-    sem = stats.sem(data_sd)  # Standard error of the mean
-    n = len(data)
-    confidence = 0.95
-
-    # Get t critical value for 95% CI and n-1 degrees of freedom
-    t_crit = stats.t.ppf((1 + confidence) / 2, df=dof)
-    print(f"{response} {name}: {mean:.2f} ± {t_crit * sem:.2f}")
+responses = ['T', 'O3', 'CLOUD']
 
 def avg_case_data(dir, response):
     case_list = []

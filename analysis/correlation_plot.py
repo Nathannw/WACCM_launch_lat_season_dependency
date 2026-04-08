@@ -1,12 +1,11 @@
 import matplotlib.pyplot as plt
-from scipy.interpolate import PchipInterpolator
 from scipy.stats import pearsonr
 import numpy as np
 from analysis.func import *
 
 # To plot correlation
 
-def plotting(x, x_summer, x_winter,y, y_summer, y_winter, x_label, y_label, char, fig_name):
+def plotting(x, x_summer, x_winter,y, y_summer, y_winter, x_label, y_label, char, fig_name, legend):
     x_all = np.hstack((x, x_summer, x_winter))
     y_all = np.hstack((y, y_summer, y_winter))
     r, p = pearsonr(x_all[~np.isnan(x_all)], y_all[~np.isnan(y_all)])
@@ -40,8 +39,9 @@ def plotting(x, x_summer, x_winter,y, y_summer, y_winter, x_label, y_label, char
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
-    # Legend formatting
-    # plt.legend(frameon=True, fontsize=12)
+    if legend:
+        # Legend formatting
+        plt.legend(frameon=True, fontsize=12)
 
     # Axis border (journal look: all sides visible, no grid)
     for spine in plt.gca().spines.values():
@@ -66,7 +66,7 @@ def main():
     y_label = "Stratospheric Temperature Anomaly (K)"
     char = '(a)'
     fig_name = 'bc_burden_vs_T'
-    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name)
+    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name, True)
 
     datax, datax_summer, datax_winter = read_file('data_file/mean_BC_altitude.txt')
     datay, datay_summer, datay_winter = read_file('data_file/T.txt')
@@ -74,7 +74,7 @@ def main():
     y_label = "Stratospheric Temperature Anomaly (K)"
     char = '(c)'
     fig_name = 'bc_altitude_vs_T'
-    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name)
+    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name, False)
 
     datax, datax_summer, datax_winter = read_file('data_file/mean_BC_latitude.txt')
     datay, datay_summer, datay_winter = read_file('data_file/T.txt')
@@ -82,7 +82,7 @@ def main():
     y_label = "Stratospheric Temperature Anomaly (K)"
     char = '(b)'
     fig_name = 'bc_latitude_vs_T'
-    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name)
+    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name, False)
 
     datax, datax_summer, datax_winter = read_file('data_file/T_NH.txt')
     datay, datay_summer, datay_winter = read_file('data_file/O3_NH.txt')
@@ -90,7 +90,7 @@ def main():
     y_label = 'NH Ozone Anomaly (DU)'
     char = '(d)'
     fig_name = 'T_NH_vs_O3_NH'
-    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name)
+    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name, False)
 
     datax, datax_summer, datax_winter = read_file('data_file/T_SH.txt')
     datay, datay_summer, datay_winter = read_file('data_file/O3_SH.txt')
@@ -98,7 +98,7 @@ def main():
     y_label = '0°N - 60°S Ozone Anomaly (DU)'
     char = '(e)'
     fig_name = 'T_MSH_vs_O3_MSH'
-    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name)
+    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name, False)
 
     datax, datax_summer, datax_winter = read_file('data_file/CLOUD_SP.txt')
     datay, datay_summer, datay_winter = read_file('data_file/O3_SP.txt')
@@ -106,7 +106,7 @@ def main():
     y_label = '60°S - 90°S Ozone Anomaly (DU)'
     char = '(f)'
     fig_name = 'CLD_SP_vs_O3_SP'
-    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name)
+    plotting(datax, datax_summer, datax_winter, datay, datay_summer, datay_winter, x_label, y_label, char, fig_name, False)
 
 if __name__ == "__main__":
     main()

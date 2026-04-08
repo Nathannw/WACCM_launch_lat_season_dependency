@@ -2,10 +2,7 @@ import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 import os
-import pandas as pd
-from matplotlib.colors import LinearSegmentedColormap
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
 
@@ -85,13 +82,13 @@ case_list_initial = ['all_year', 'all_year', 'summer', 'winter', 'all_year' ,'al
 location_list = ['CC_BC_only', 'SA', 'SA', 'SA', 'AU', 'EQ', 'EQ', 'EQ', 'CC', 'CC', 'CC', 'UK' , 'RU', 'RU', 'RU']
 lat_list = [29,-55,-55,-55,-29,-0,0,0,29,29,29,55,70,70,70]
 date_list = ['AUG_13', 'JUL_8','JUL_8','JUL_8','AUG_13','AUG_13','AUG_13','AUG_13','JUL_8','JUL_8','JUL_8','AUG_13','JUL_8','JUL_8','JUL_8']
-alp = ['','(a)','','','','','','','','','','(b)','','','',]
+alp = ['','(a)','','','','','','','','','','(b)','(c)','','',]
 
 def main():
-    for i in range(len(case_list_initial)):
-        launch_season = case_list_initial[i]
-        location = location_list[i]
-        date = date_list[i]
+    for m in range(len(case_list_initial)):
+        launch_season = case_list_initial[m]
+        location = location_list[m]
+        date = date_list[m]
         
         # Create a unique readable identifier for the current case
         case_identifier = f"{date}_30Gg_{launch_season}_{location}"
@@ -165,9 +162,8 @@ def main():
         # --- Shared colorbar ---
         cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
         fig.colorbar(c, cax=cbar_ax, label="K")
-
         # --- Shared labels ---
-        fig.text(0.025, 0.95, f"{alp[j]}", fontsize=12, fontweight="bold", va="center")
+        fig.text(0.025, 0.95, f"{alp[m]}", fontsize=12, fontweight="bold", va="center")
         fig.text(0.5, 0.025, "Latitude (°)", ha="center", fontsize=14)
         fig.text(0.025, 0.5, "Altitude (km)", va="center", rotation="vertical", fontsize=14)
 
