@@ -4,6 +4,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
+import seaborn as sns
+import pickle
 # Note: Only use for 1.9x2.5 grid
 # Falcon 9
 
@@ -141,6 +143,73 @@ def emission_profile(alt_bin, emission_rate):
     BC_kg_yearly = BC_kg*num_launch
     NOx_kg_yearly = NOx_kg*num_launch
     H2O_kg_yearly = H2O_kg*num_launch
+    
+    # --- 1. Time vs altitude ---
+    with open('max_payload_convex_trajectory.pkl', "rb") as f:
+        times, X_ref_final, U_ref_final, m_BC, mask, EI_BC = pickle.load(f)
+    R_E = 6375253   
+    df[["Time, in s"]].assign(Altitude_km=df["Altitude in m"])
+    df["Time_s"] = pd.to_numeric(df["Time, in s"], errors="coerce")
+    df["Altitude in km"] = pd.to_numeric(df["Altitude in m"]/1000, errors="coerce")
+
+    df = df.dropna(subset=["Altitude in km"])
+
+    plt.figure()
+    Altitude = np.linalg.norm(X_ref_final[:, 0:3], axis=1) - R_E
+    plt.plot(df["Time_s"], df["Altitude in km"], label = "SpaceX Webcast Data", linestyle = ':')
+    plt.plot(times, Altitude/1e3, label = "Max PL Simulated Traj")
+    plt.xlabel('Time [s]')
+    plt.ylabel('Altitude [km]')
+    plt.ylim([0,100])
+    plt.xlim([0,200])
+    plt.legend()
+    plt.savefig("fig/emission_profile/time_vs_altitude_webcast.pdf")
+    plt.show()
+
+    # --- 2. Altitude vs NOx mass deposited ---
+    plt.figure(figsize=(8,6))
+    plt.barh(altitude_bin, NOx_kg, height=alt_bin/1000 * 0.9, color='black', edgecolor='black')
+    plt.ylabel("Altitude (km)", fontsize=18)
+    plt.xlabel("NO$_x$ mass deposited (kg)", fontsize=18)
+    plt.ylim([0,70])
+    sns.despine()
+    # plt.tight_layout()
+    plt.legend(fontsize=16, loc='best', frameon=False)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    plt.savefig("fig/emission_profile/altitude_vs_NOx_kg.pdf")
+    plt.show()
+
+    # --- 3. Altitude vs BC mass deposited ---
+    plt.figure(figsize=(8,6))
+    plt.barh(altitude_bin, BC_kg, height=alt_bin/1000 * 0.9, color='black', edgecolor='black')
+    plt.ylabel("Altitude (km)", fontsize=18)
+    plt.xlabel("BC mass deposited (kg)", fontsize=18)
+    plt.ylim([0,70])
+    plt.xlim([0,400])
+    sns.despine()
+    plt.legend(fontsize=16, loc='best', frameon=False)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    plt.savefig("fig/emission_profile/altitude_vs_BC_kg.pdf")
+    plt.show()
+
+    # --- 4. Altitude vs H2O mass deposited ---
+    plt.figure(figsize=(8,6))
+    plt.barh(altitude_bin, H2O_kg, height=alt_bin/1000 * 0.9, color='black', edgecolor='black')
+    plt.ylabel("Altitude (km)", fontsize=18)
+    plt.xlabel("H$_2$O mass deposited (kg)", fontsize=18)
+    plt.ylim([0,70])
+    sns.despine()
+    # plt.tight_layout()
+    plt.legend(fontsize=16, loc='best', frameon=False)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
+    plt.savefig("fig/emission_profile/altitude_vs_H2O_kg.pdf")
+    plt.show()
 
     return BC_kg_yearly, NOx_kg_yearly, H2O_kg_yearly
 

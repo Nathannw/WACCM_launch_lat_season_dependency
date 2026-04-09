@@ -3,7 +3,6 @@ import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.basemap import Basemap
 
 # To create the emission files of Black Carbon, NOx and H2O in .nc to be ready for WACCM
 

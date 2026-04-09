@@ -81,13 +81,13 @@ def vertical_plot_deltnew(ax, nc, data, data_wind, data_V,
 alp = '(d)'
 dir_control = 'results_cloud/lon/JUL_8_control/'
 
-fig, axes = plt.subplots(1, 4, figsize=(12, 4))
 
 month = ['JJA (70°N Summer-only)', 'JJA (70°N Winter-only)', 'DJF (55°S Summer-only)', 'DJF (55°S Winter-only)']
 i_list = [6, 6 ,0, 0]
 dir_case_list = ['results_cloud/lon/JUL_8_30Gg_summer_RU/', 'results_cloud/lon/JUL_8_30Gg_winter_RU/', 'results_cloud/lon/JUL_8_30Gg_summer_SA/', 'results_cloud/lon/JUL_8_30Gg_winter_SA/']
 
 def main():
+    fig, axes = plt.subplots(1, 4, figsize=(12, 4))
     for j, i in enumerate(i_list):
         dir_case = dir_case_list[j]
         # --- Load data ---
