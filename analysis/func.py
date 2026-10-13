@@ -56,8 +56,8 @@ def Neff_calculation_p_val(rho1_case, t_stat):
 
 
 def find_trop_func(nc, i):
-    TROP_P = nc["TROP_P"][:,i] / 100
-    LEV = nc["lev"]
+    TROP_P = np.asarray(nc.variables["TROP_P"][:, i], dtype=float) / 100
+    LEV = nc.variables["lev"][:]
 
     LEV = np.array(LEV)
 
@@ -83,9 +83,9 @@ def find_trop_func(nc, i):
 
 
 def pressure_level_weights(nc):
-    lev = np.asarray(nc["lev"][:], dtype=float)
-    if "ilev" in nc.variables and len(nc["ilev"][:]) == len(lev) + 1:
-        edges = np.asarray(nc["ilev"][:], dtype=float)
+    lev = np.asarray(nc.variables["lev"][:], dtype=float)
+    if "ilev" in nc.variables and len(nc.variables["ilev"][:]) == len(lev) + 1:
+        edges = np.asarray(nc.variables["ilev"][:], dtype=float)
     else:
         mid_edges = 0.5 * (lev[:-1] + lev[1:])
         first_edge = lev[0] - (mid_edges[0] - lev[0])

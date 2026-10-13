@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Compare AUG_13_all_year_ID against AUG_13_30Gg_all_year_EQ.
+"""Run the standard ID-minus-EQ and BC-only-minus-CC comparisons.
 
-The reported sign convention is always:
+The reported sign convention is always target minus reference. By default the
+script runs both built-in comparisons and writes each result to its own data
+and figure directories. Passing any directory option switches to a single,
+custom comparison.
 
-    AUG_13_all_year_ID - AUG_13_30Gg_all_year_EQ
-
-Outputs are written to data_file/id_minus_eq and fig/id_minus_eq by default.
 The script uses paired 12-month means over matching YYYY-MM files starting from
 file index [120:] and reports lag-1-autocorrelation-adjusted two-sided p-values
 and 95% confidence intervals.
@@ -16,14 +16,26 @@ from __future__ import annotations
 import argparse
 import csv
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
+from analysis.emission_funcs import col_area
 from analysis.figure_style import COLORS, panel_label
+from analysis.func import (
+    Neff_calculation as neff_calculation,
+    Neff_calculation_p_val as neff_calculation_p_val,
+    find_trop_func as tropopause_bounds,
+    pressure_level_weights,
+    pressure_weighted_mean,
+)
 
 try:
     from netCDF4 import Dataset as NetcdfDataset
@@ -34,16 +46,31 @@ else:
     netcdf_file = None
 
 
-PROJECT_DIR = Path(__file__).resolve().parent
-DEFAULT_REFERENCE_DIR = PROJECT_DIR / "results_cloud" / "lon" / "AUG_13_30Gg_all_year_EQ"
-DEFAULT_TARGET_DIR = PROJECT_DIR / "results_cloud" / "lon" / "AUG_13_all_year_ID"
-DEFAULT_DATA_DIR = PROJECT_DIR / "data_file" / "id_minus_eq"
-DEFAULT_FIG_DIR = PROJECT_DIR / "fig" / "id_minus_eq"
-# DEFAULT_REFERENCE_DIR = PROJECT_DIR / "results_cloud" / "lon" / "JUL_8_30Gg_all_year_CC"
-# DEFAULT_TARGET_DIR = PROJECT_DIR / "results_cloud" / "lon" / "AUG_13_30Gg_all_year_CC_BC_only"
-# DEFAULT_DATA_DIR = PROJECT_DIR / "data_file" / "BC_only_minus_cc"
-# DEFAULT_FIG_DIR = PROJECT_DIR / "fig" / "BC_only_minus_cc"
+PROJECT_DIR = Path(__file__).resolve().parent.parent
 COORDS_DIR = PROJECT_DIR / "geo_file"
+
+
+@dataclass(frozen=True)
+class ComparisonConfig:
+    reference_dir: Path
+    target_dir: Path
+    data_dir: Path
+    fig_dir: Path
+
+
+ID_MINUS_EQ_COMPARISON = ComparisonConfig(
+    reference_dir=PROJECT_DIR / "results_cloud" / "lon" / "AUG_13_30Gg_all_year_EQ",
+    target_dir=PROJECT_DIR / "results_cloud" / "lon" / "AUG_13_all_year_ID",
+    data_dir=PROJECT_DIR / "data_file" / "id_minus_eq",
+    fig_dir=PROJECT_DIR / "fig" / "id_minus_eq",
+)
+BC_ONLY_MINUS_CC_COMPARISON = ComparisonConfig(
+    reference_dir=PROJECT_DIR / "results_cloud" / "lon" / "JUL_8_30Gg_all_year_CC",
+    target_dir=PROJECT_DIR / "results_cloud" / "lon" / "AUG_13_30Gg_all_year_CC_BC_only",
+    data_dir=PROJECT_DIR / "data_file" / "BC_only_minus_cc",
+    fig_dir=PROJECT_DIR / "fig" / "BC_only_minus_cc",
+)
+DEFAULT_COMPARISONS = (ID_MINUS_EQ_COMPARISON, BC_ONLY_MINUS_CC_COMPARISON)
 
 DATE_RE = re.compile(r"\.(\d{4})-(\d{2})\.nc$")
 N_LONGITUDES = 144
@@ -51,7 +78,6 @@ BC_START_LEVEL = 18
 TEMP_START_LEVEL = 25
 AIR_MOLAR_MASS_G_PER_MOL = 28.97
 DU_MOLECULES_PER_CM2 = 4.4615e-8
-EARTH_RADIUS_CM = 637.8e6
 RADIATIVE_FLUXES = ("FSNT", "FLNT", "FSNTC", "FLNTC")
 RADIATIVE_UNITS = "W m^-2"
 
@@ -141,23 +167,6 @@ def complete_annual_means(
     return annual_years, np.asarray(annual_values, dtype=float)
 
 
-def neff_calculation(rho1_case: float) -> tuple[float, float]:
-    n_samples = 15
-    neff_case = n_samples * (1 - rho1_case) / (1 + rho1_case)
-    neff = np.minimum(neff_case, n_samples)
-    dof_eff = neff - 1
-    return float(neff), float(dof_eff)
-
-
-def neff_calculation_p_val(rho1_case: float, t_stat: float) -> tuple[float, float, float]:
-    n_samples = 15
-    neff_case = n_samples * (1 - rho1_case) / (1 + rho1_case)
-    neff = np.minimum(neff_case, n_samples)
-    dof_eff = neff - 1
-    p_value = 2 * stats.t.sf(abs(t_stat), dof_eff)
-    return float(neff), float(dof_eff), float(p_value)
-
-
 def summarize_difference(diff: np.ndarray) -> StatResult:
     diff = np.asarray(diff, dtype=float)
     diff = diff[np.isfinite(diff)]
@@ -213,19 +222,6 @@ def summarize_profile_difference(diff: np.ndarray) -> list[StatResult]:
     return summarize_latitude_difference(diff)
 
 
-def grid_column_area() -> tuple[np.ndarray, np.ndarray]:
-    with open_dataset(COORDS_DIR / "coords_1.9x2.5_L70.nc") as coords:
-        lat = read_variable(coords, "lat")
-        lon = read_variable(coords, "lon")
-    with open_dataset(COORDS_DIR / "coords_1.9x2.5_L88_c150828.nc") as weights_file:
-        gw = read_variable(weights_file, "gw")
-
-    earth_area_cm2 = 4.0 * np.pi * EARTH_RADIUS_CM**2
-    column_area = np.tile(gw[:, np.newaxis], (1, len(lon)))
-    column_area = column_area * earth_area_cm2 / len(lon) / np.sum(gw)
-    return lat, column_area
-
-
 def area_weighted_mean(values: np.ndarray, weights: np.ndarray) -> float:
     values = np.ma.masked_invalid(np.ma.array(values))
     weights = np.ma.array(weights, mask=np.ma.getmaskarray(values))
@@ -244,55 +240,6 @@ def global_area_weighted_mean(values: np.ndarray, zonal_area: np.ndarray) -> flo
 
     weights = np.broadcast_to(weights, values.shape)
     weights = np.ma.array(weights, mask=np.ma.getmaskarray(values))
-    return float(np.ma.sum(values * weights) / np.ma.sum(weights))
-
-
-def has_variable(dataset, name: str) -> bool:
-    return name in dataset.variables
-
-
-def tropopause_bounds(dataset, lat_idx: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    if not has_variable(dataset, "TROP_P"):
-        raise ValueError("TROP_P is required for stratospheric diagnostics")
-
-    tropopause_hpa = read_variable(dataset, "TROP_P")[:, lat_idx] / 100.0
-    lev = read_variable(dataset, "lev")
-    if lev[0] > lev[-1]:
-        lev = lev[::-1]
-
-    idx_upper = np.searchsorted(lev, tropopause_hpa)
-    idx_lower = idx_upper - 1
-    idx_lower = np.clip(idx_lower, 0, len(lev) - 2)
-    idx_upper = np.clip(idx_upper, 1, len(lev) - 1)
-
-    p1 = lev[idx_lower]
-    p2 = lev[idx_upper]
-    ratio = (tropopause_hpa - p1) / (p2 - p1)
-    return idx_lower, idx_upper, ratio
-
-
-def pressure_level_weights(dataset) -> np.ndarray:
-    lev = np.asarray(read_variable(dataset, "lev"), dtype=float)
-    if has_variable(dataset, "ilev") and len(read_variable(dataset, "ilev")) == len(lev) + 1:
-        edges = np.asarray(read_variable(dataset, "ilev"), dtype=float)
-    else:
-        mid_edges = 0.5 * (lev[:-1] + lev[1:])
-        first_edge = lev[0] - (mid_edges[0] - lev[0])
-        last_edge = lev[-1] + (lev[-1] - mid_edges[-1])
-        edges = np.concatenate(([first_edge], mid_edges, [last_edge]))
-    return np.abs(np.diff(edges))
-
-
-def pressure_weighted_mean(values: np.ndarray, weights: np.ndarray) -> float:
-    values = np.ma.masked_invalid(np.ma.array(values))
-    weights = np.ma.masked_invalid(np.ma.array(weights))
-    if values.ndim > weights.ndim:
-        weights = np.reshape(weights, (1,) * (values.ndim - weights.ndim) + weights.shape)
-    weights = np.broadcast_to(weights, values.shape)
-    weights = np.ma.array(
-        weights,
-        mask=np.ma.getmaskarray(values) | np.ma.getmaskarray(weights),
-    )
     return float(np.ma.sum(values * weights) / np.ma.sum(weights))
 
 
@@ -379,7 +326,7 @@ def radiative_flux_global_mean(
 def compute_monthly_diagnostics(
     pairs: list[tuple[str, Path, Path]],
 ) -> dict[str, np.ndarray | list[str]]:
-    lat, column_area = grid_column_area()
+    column_area, lat, _ = col_area(COORDS_DIR)
     zonal_area_cm2 = np.mean(column_area, axis=1)
 
     dates = []
@@ -706,12 +653,15 @@ def print_scalar_summary(rows: list[dict[str, object]]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare target case minus reference case."
+        description=(
+            "Run both standard target-minus-reference comparisons. Passing any "
+            "directory option runs one custom comparison instead."
+        )
     )
-    parser.add_argument("--reference-dir", type=Path, default=DEFAULT_REFERENCE_DIR)
-    parser.add_argument("--target-dir", type=Path, default=DEFAULT_TARGET_DIR)
-    parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
-    parser.add_argument("--fig-dir", type=Path, default=DEFAULT_FIG_DIR)
+    parser.add_argument("--reference-dir", type=Path)
+    parser.add_argument("--target-dir", type=Path)
+    parser.add_argument("--data-dir", type=Path)
+    parser.add_argument("--fig-dir", type=Path)
     parser.add_argument(
         "--skip-months",
         type=int,
@@ -721,9 +671,29 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-    pairs = matching_file_pairs(args.reference_dir, args.target_dir, args.skip_months)
+def requested_comparisons(args: argparse.Namespace) -> tuple[ComparisonConfig, ...]:
+    custom_paths = (
+        args.reference_dir,
+        args.target_dir,
+        args.data_dir,
+        args.fig_dir,
+    )
+    if not any(path is not None for path in custom_paths):
+        return DEFAULT_COMPARISONS
+
+    base = ID_MINUS_EQ_COMPARISON
+    return (
+        ComparisonConfig(
+            reference_dir=args.reference_dir or base.reference_dir,
+            target_dir=args.target_dir or base.target_dir,
+            data_dir=args.data_dir or base.data_dir,
+            fig_dir=args.fig_dir or base.fig_dir,
+        ),
+    )
+
+
+def run_comparison(config: ComparisonConfig, skip_months: int) -> None:
+    pairs = matching_file_pairs(config.reference_dir, config.target_dir, skip_months)
     diagnostics = compute_monthly_diagnostics(pairs=pairs)
 
     dates = list(diagnostics["dates"])
@@ -802,12 +772,12 @@ def main() -> None:
     temp_lat_stats = summarize_profile_difference(temp_lat_target_annual - temp_lat_ref_annual)
     ozone_lat_stats = summarize_profile_difference(ozone_lat_target_annual - ozone_lat_ref_annual)
 
-    args.data_dir.mkdir(parents=True, exist_ok=True)
-    args.fig_dir.mkdir(parents=True, exist_ok=True)
+    config.data_dir.mkdir(parents=True, exist_ok=True)
+    config.fig_dir.mkdir(parents=True, exist_ok=True)
 
-    write_scalar_summary(args.data_dir / "global_and_burden_summary.csv", scalar_rows)
+    write_scalar_summary(config.data_dir / "global_and_burden_summary.csv", scalar_rows)
     write_latitude_summary(
-        args.data_dir / "stratospheric_temperature_by_latitude.csv",
+        config.data_dir / "stratospheric_temperature_by_latitude.csv",
         lat,
         "K",
         np.nanmean(temp_lat_ref_annual, axis=0),
@@ -815,7 +785,7 @@ def main() -> None:
         temp_lat_stats,
     )
     write_latitude_summary(
-        args.data_dir / "o3_column_by_latitude.csv",
+        config.data_dir / "o3_column_by_latitude.csv",
         lat,
         "DU",
         np.nanmean(ozone_lat_ref_annual, axis=0),
@@ -823,9 +793,9 @@ def main() -> None:
         ozone_lat_stats,
     )
 
-    plot_scalar_summary(args.fig_dir / "global_and_burden_summary", scalar_rows)
+    plot_scalar_summary(config.fig_dir / "global_and_burden_summary", scalar_rows)
     plot_latitude_difference(
-        args.fig_dir / "stratospheric_temperature_by_latitude",
+        config.fig_dir / "stratospheric_temperature_by_latitude",
         lat,
         temp_lat_stats,
         "Stratospheric temperature difference (K)",
@@ -833,7 +803,7 @@ def main() -> None:
         panel_label("a"),
     )
     plot_latitude_difference(
-        args.fig_dir / "o3_column_by_latitude",
+        config.fig_dir / "o3_column_by_latitude",
         lat,
         ozone_lat_stats,
         "O3 column difference (DU)",
@@ -841,15 +811,24 @@ def main() -> None:
         panel_label("b"),
     )
 
-    print(f"Comparison: {comparison_label(args.reference_dir, args.target_dir)}")
-    print(f"Skipped initial matched monthly files: {args.skip_months}")
+    print(f"Comparison: {comparison_label(config.reference_dir, config.target_dir)}")
+    print(f"Skipped initial matched monthly files: {skip_months}")
     print(f"Matched monthly files: {len(pairs)}")
     print(f"Complete 12-month windows used: {years[0]}-{years[-1]} ({len(years)} windows)")
     print_scalar_summary(scalar_rows)
-    print(f"Saved: {args.data_dir / 'global_and_burden_summary.csv'}")
-    print(f"Saved: {args.data_dir / 'stratospheric_temperature_by_latitude.csv'}")
-    print(f"Saved: {args.data_dir / 'o3_column_by_latitude.csv'}")
-    print(f"Saved figures under: {args.fig_dir}")
+    print(f"Saved: {config.data_dir / 'global_and_burden_summary.csv'}")
+    print(f"Saved: {config.data_dir / 'stratospheric_temperature_by_latitude.csv'}")
+    print(f"Saved: {config.data_dir / 'o3_column_by_latitude.csv'}")
+    print(f"Saved figures under: {config.fig_dir}")
+
+
+def main() -> None:
+    args = parse_args()
+    comparisons = requested_comparisons(args)
+    for index, config in enumerate(comparisons):
+        if index:
+            print()
+        run_comparison(config, args.skip_months)
 
 
 if __name__ == "__main__":

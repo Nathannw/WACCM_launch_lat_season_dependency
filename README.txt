@@ -1,4 +1,4 @@
-Date: 6 April, 2026
+Date: 13 October, 2026
 
 Dataset Title: Dependence of Atmospheric and Climate Impacts on Launch Latitude and Seasonal Variation in Rocket Emissions
 
@@ -24,7 +24,7 @@ Funding: Royal Thai Government Scholarship, funded by the Geo-Informatics and Sp
 
 Methodology:
 The data are model output form climate simulations conducted with the Whole Atmosphere Community Climate Model (WACCM) version 6/Community Earth System Model (CESM) version 2.2.2.
-Date Coverage: 1999-2020
+Date Coverage: 1999-2024
 
 Data Description:
 Model outputs from WACCM6/CESM2 are stored within `results_cloud`. The configurations are categorized by season and location:
@@ -39,6 +39,7 @@ Launch Location Configurations
 | UK | Latitude: 55 | Longitude: -1.6 | Description: The United Kingdom |
 | CC | Latitude: 28.47 | Longitude: -80.57 | Description: Cape Canaveral |
 | EQ | Latitude: 0 | Longitude: -50 | Description: French Guiana |
+| ID | Latitude: 0 | Longitude: 104 | Description: Indonesia |
 | AU | Latitude: -29 | Longitude : 153.5 | Description: Australia |
 | SA | Latitude: -55 | Longitude: -68 | Description: South America |
 
@@ -55,7 +56,6 @@ The 'create_emission.py' script requires the launch location (latitude and longi
 This generates Black Carbon emissions between 11–70 km at a total rate of 30 Gg per year and output as .nc files store under 'emission_file/*case*/'.
 The `emission_profile` function inside `analysis/emission_funcs.py` reads `Falcon9_trajectory_THAICOM_8.csv`. 
 It calculates the altitude profile of Falcon 9 emissions before applying the relevant emission indices. 
-It also plots the vertical emission profiles of BC, H2​O, and NOx​, and compares the trajectory profiles between Falcon9_trajectory_THAICOM_8.csv and a maximum payload Falcon 9 trajectory (stored in max_payload_convex_trajectory.pkl) derived from convex optimization.
 
 Running the Analysis
 Execute Analysis:
@@ -64,6 +64,12 @@ Execute Analysis:
     * Processes and stores the required analysis data in `.txt` format within the `data_file/` directory.
     * Generates and saves plots in the `fig/` directory.
     * Computes additional data used to construct the tables presented in the manuscript.
+
+Analysis for Appendices:
+    Appendix A:
+    Appendix B:
+    Appendix C:
+    Appendix D:
 
 Use and Access:
 This data set is made available under a Creative Commons Public Domain license (CC0 1.0).

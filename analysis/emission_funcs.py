@@ -2,6 +2,9 @@ try:
     from netCDF4 import Dataset
 except ImportError:
     Dataset = None
+    from scipy.io import netcdf_file
+else:
+    netcdf_file = None
 import numpy as np
 try:
     import pandas as pd
@@ -16,25 +19,38 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 # import seaborn as sns
 import pickle
+from pathlib import Path
 from analysis.figure_style import apply_journal_style
 
 apply_journal_style()
 # Note: Only use for 1.9x2.5 grid
 # Falcon 9
 
-def col_area():
+def col_area(coords_dir="geo_file"):
+    """Return grid-column areas, latitudes, and longitudes.
+
+    ``coords_dir`` defaults to the historical project-relative location, while
+    callers in reusable analysis modules can pass an absolute directory.
+    """
     r_earth = 637.8*1e6 # Earth's radius (cm)
 
     SAearth = 4.0*np.pi*r_earth*r_earth
 
-    # Open the template file in read mode
-    templateFile = Dataset('geo_file/coords_1.9x2.5_L70.nc', "r")
-    gw_file = Dataset('geo_file/coords_1.9x2.5_L88_c150828.nc', "r")
+    coords_dir = Path(coords_dir)
+    template_path = coords_dir / "coords_1.9x2.5_L70.nc"
+    weights_path = coords_dir / "coords_1.9x2.5_L88_c150828.nc"
+    if Dataset is not None:
+        template_context = Dataset(template_path, "r")
+        weights_context = Dataset(weights_path, "r")
+    else:
+        template_context = netcdf_file(template_path, mode="r", mmap=False)
+        weights_context = netcdf_file(weights_path, mode="r", mmap=False)
 
-    # Extract variables
-    gw = gw_file.variables['gw'][:]  # [lat | 96]
-    lat = templateFile.variables['lat'][:]
-    lon = templateFile.variables['lon'][:]
+    with template_context as template_file, weights_context as weights_file:
+        # Copy values so they remain valid after scipy.io files are closed.
+        gw = np.array(weights_file.variables['gw'][:], dtype=float, copy=True)
+        lat = np.array(template_file.variables['lat'][:], dtype=float, copy=True)
+        lon = np.array(template_file.variables['lon'][:], dtype=float, copy=True)
 
     # Get dimensions
     nLat = len(lat)
