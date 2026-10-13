@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from scipy.stats import ttest_1samp, ttest_ind
+from analysis.figure_style import COLORS, panel_label
 
 # To plot South Pole cloud liquid / ice content
 
@@ -18,7 +19,7 @@ def avg_case_data(dir, response):
     case_list.sort(key=lambda x: os.path.basename(x).lower())
     data_list = []
     # Exclude first 5 years
-    case_list = case_list[60:]
+    case_list = case_list[120:]
     for case in case_list:
         nc = NetCDFFile(case)
         # print(nc)
@@ -35,10 +36,18 @@ def avg_case_data(dir, response):
             aggregated_data = DU
         elif response in ['CLOUD','CLDICE', 'CLDLIQ', 'T']:
             aggregated_data_temp = []
+            response_data = nc.variables[response][:]
+            pressure_weights = pressure_level_weights(nc)
             for a in range(96):
                 idx_lower, idx_upper, ratio = find_trop_func(nc, a)
-                X1 = np.mean(nc.variables[response][:, 25:idx_lower[0],a], axis = (0,1))
-                X2 = np.mean(nc.variables[response][:, 25:idx_upper[0],a], axis = (0,1)) 
+                X1 = pressure_weighted_mean(
+                    response_data[:, 25:idx_lower[0], a],
+                    pressure_weights[25:idx_lower[0]]
+                )
+                X2 = pressure_weighted_mean(
+                    response_data[:, 25:idx_upper[0], a],
+                    pressure_weights[25:idx_upper[0]]
+                )
                 aggregated_data_1 = X1 * (1 - ratio[0]) + X2 * ratio[0]
                 aggregated_data_temp.append(aggregated_data_1)
             masked = np.ma.masked_array(aggregated_data_temp)
@@ -50,26 +59,28 @@ def avg_case_data(dir, response):
 
 cases = {
     'RU':    {'dir': 'JUL_8_30Gg_all_year_RU',          'color': 'black'},
-    'UK':    {'dir': 'AUG_13_30Gg_all_year_UK',         'color': 'darkorange'},
-    'CC':    {'dir': 'JUL_8_30Gg_all_year_CC',          'color': 'forestgreen'},
-    'CC_bc': {'dir': 'AUG_13_30Gg_all_year_CC_BC_only', 'color': 'forestgreen'},
-    'EQ':    {'dir': 'AUG_13_30Gg_all_year_EQ',         'color': 'purple'},
-    'SA':    {'dir': 'JUL_8_30Gg_all_year_SA',          'color': 'teal'},
-    'AU':    {'dir': 'AUG_13_30Gg_all_year_AU',         'color': 'crimson'}
+    'UK':    {'dir': 'AUG_13_30Gg_all_year_UK',         'color': COLORS["orange"]},
+    'CC':    {'dir': 'JUL_8_30Gg_all_year_CC',          'color': COLORS["green"]},
+    'CC_bc': {'dir': 'AUG_13_30Gg_all_year_CC_BC_only', 'color': COLORS["green"]},
+    'EQ':    {'dir': 'AUG_13_30Gg_all_year_EQ',         'color': COLORS["purple"]},
+    'AU':    {'dir': 'AUG_13_30Gg_all_year_AU',         'color': COLORS["vermillion"]},
+    'SA':    {'dir': 'JUL_8_30Gg_all_year_SA',          'color': COLORS["sky_blue"]}
+
 }
 
 labels = ["Ice amount", "Liquid amount"]
 line_styles = ['-', '-.']
 titles_delta = [
-    'Stratospheric Cloud Ice and Liquid Content Anomaly (Case – Control) (kg/kg)', 
-    'Stratospheric Cloud Ice and Liquid Content Anomaly \n(Case – Control) (kg/kg)'
+    r'Stratospheric cloud ice and liquid content anomaly (case minus control) ($\mathrm{kg}\ \mathrm{kg}_{\mathrm{air}}^{-1}$)',
+    "Stratospheric cloud ice and liquid content anomaly\n"
+    r"(case minus control) ($\mathrm{kg}\ \mathrm{kg}_{\mathrm{air}}^{-1}$)"
 ]
 
 def main():
     lats = np.loadtxt('geo_file/lat.txt')
 
     # Initialize figure once for both iterations
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(8, 8))
 
     # 2. Iterate through responses
     for k, response in enumerate(['CLDICE', 'CLDLIQ']):
@@ -98,7 +109,9 @@ def main():
                 
             # Determine base linestyle (CC_bc is always dotted)
             ls = ':' if case == 'CC_bc' else line_styles[k]
-            
+            if response == 'CLDLIQ' and case != 'CC_bc':
+                plt.plot(diff, lats, color=cfg['color'], linewidth=1, linestyle=line_styles[k])
+                continue
             # Plot segments
             for i in range(len(lats) - 1):
                 # CLDLIQ or CC_bc always get linewidth 1. Otherwise, evaluate significance.
@@ -114,19 +127,21 @@ def main():
 
     # 3. Final Annotations and Formatting
     # Add the specific label for CC_bc
-    plt.plot([], [], color='forestgreen', linewidth=2, linestyle=':', label='29°N BC-only Ice amount')
+    plt.plot([], [], color=COLORS["green"], linewidth=2, linestyle=':', label='29° N BC-only ice amount')
 
-    plt.text(0.02, 1.05, '(c)', transform=plt.gca().transAxes, fontsize=12, fontweight='bold')
+    plt.text(0.02, 1.05, panel_label('c'), transform=plt.gca().transAxes, fontsize=17, fontweight='bold')
 
-    plt.ylim([-90, -50])
-    plt.xlim([-0.6e-8, 0.6e-8])
-    plt.ylabel("Latitude (°)", fontsize=14)
+    # plt.ylim([-90, -50])
+    plt.xlim([-0.6e-8, 1.2e-8])
+    plt.ylabel("Latitude (°)", fontsize=17)
 
     # Use the final title from your array (since k=1 when the loop finishes)
-    plt.xlabel(titles_delta[-1], fontsize=14)
+    plt.xlabel(titles_delta[-1], fontsize=17)
 
     plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
-    plt.legend(fontsize=11, loc='best', frameon=False) # Only need to call this once
+    plt.legend(fontsize=17, loc='best', frameon=False) # Only need to call this once
+    plt.xticks(fontsize=17)
+    plt.yticks(fontsize=17)
     plt.tight_layout()
     plt.savefig('fig/lat/lat_cloud_ice_liquid.pdf')
     # plt.show()

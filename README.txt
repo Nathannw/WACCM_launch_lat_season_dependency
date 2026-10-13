@@ -27,7 +27,7 @@ The data are model output form climate simulations conducted with the Whole Atmo
 Date Coverage: 1999-2020
 
 Data Description:
-Model outputs from WACCM6/CESM2 are stored within `results_cloud.zip`. The configurations are categorized by season and location:
+Model outputs from WACCM6/CESM2 are stored within `results_cloud`. The configurations are categorized by season and location:
 
 Seasonal Configurations
 all_year: Year-Round configuration
@@ -44,6 +44,10 @@ Launch Location Configurations
 
 Results from December 1999 to November 2004 do not include diagnosed tropopause, cloud ice, or liquid water content outputs.
 
+Prerequisites
+Python 3.11.0
+Required libraries: numpy, scipy, matplotlib, pandas, netCDF4, basemap (see requirements.txt)
+
 Generating Emission Files
 To generate emission files, run:
 'create_emission.py'
@@ -51,7 +55,7 @@ The 'create_emission.py' script requires the launch location (latitude and longi
 This generates Black Carbon emissions between 11–70 km at a total rate of 30 Gg per year and output as .nc files store under 'emission_file/*case*/'.
 The `emission_profile` function inside `analysis/emission_funcs.py` reads `Falcon9_trajectory_THAICOM_8.csv`. 
 It calculates the altitude profile of Falcon 9 emissions before applying the relevant emission indices. 
-It also plots the vertical emission profiles of BC, H2O, and NOx, and compares the trajectory profiles between Falcon9_trajectory_THAICOM_8.csv and a maximum payload Falcon 9 trajectory derived from convex optimization.
+It also plots the vertical emission profiles of BC, H2​O, and NOx​, and compares the trajectory profiles between Falcon9_trajectory_THAICOM_8.csv and a maximum payload Falcon 9 trajectory (stored in max_payload_convex_trajectory.pkl) derived from convex optimization.
 
 Running the Analysis
 Execute Analysis:

@@ -6,11 +6,12 @@ import os
 from scipy.optimize import curve_fit
 from analysis.emission_funcs import *
 from analysis.func import *
+from analysis.figure_style import COLORS, panel_label
 
 case_list_initial = ['all_year', 'all_year', 'summer', 'winter', 'all_year', 'summer', 'winter', 'all_year', 'summer', 'winter','all_year', 'summer', 'winter','all_year', 'all_year']
 location_list = ['CC_BC_only', 'SA', 'SA', 'SA', 'CC', 'CC', 'CC', 'RU', 'RU', 'RU', 'EQ', 'EQ', 'EQ', 'UK', 'AU']
 date_list = ['AUG_13','JUL_8','JUL_8','JUL_8','JUL_8','JUL_8','JUL_8','JUL_8','JUL_8','JUL_8','AUG_13','AUG_13','AUG_13','AUG_13','AUG_13']
-label = ['', '', '', '', '', '', '', '', '', '', '(a)', '(b)', '(c)', '', '']
+label = ['', '', '', '', '', '', '', '', '', '', panel_label('a'), panel_label('b'), panel_label('c'), '', '']
 
 def main():
     for i in range(len(case_list_initial)):
@@ -73,7 +74,7 @@ def main():
         data_con = [sum(data_list[i:i+12])*144 / 12 for i in range(0, len(data_list) - len(data_list) % 12, 12)]
         rho1_case = np.corrcoef(data_con[1:], data_con[:-1])[0, 1]
         Neff, dof_eff = Neff_calculation(rho1_case)
-        # Exclude first 5 year to calculate statistical parameters
+        # Exclude first 10 year to calculate statistical parameters
 
         if launch_season == 'summer':
             launch_season_title = 'Summer-Only'
@@ -120,18 +121,19 @@ def main():
             launch_season_title = 'Year-Round'
         plt.figure(figsize=(8, 6))
         steady_state = fitted_y[-1]
+        plt.axvspan(10, 25, color=COLORS["gray"], alpha=0.15, zorder=0)
         plt.plot(x, y, label='Black Carbon Burden', linewidth=2, linestyle='-', color = 'black')    
-        plt.axhline(steady_state,
-                    color='red',
-                    linestyle='-',
-                    linewidth=1.5,
-                    label='Quasi-steady state')
+        # plt.axhline(steady_state,
+        #             color=COLORS["vermillion"],
+        #             linestyle='-',
+        #             linewidth=1.5,
+        #             label='Quasi-steady state')
 
-        plt.axhline(y_steady,
-                    color='blue',
-                    linestyle=':',
-                    linewidth=1.5,
-                    label=f'10% below quasi-steady state (≈{x_steady:.1f} yrs)')
+        # plt.axhline(y_steady,
+        #             color=COLORS["blue"],
+        #             linestyle=':',
+        #             linewidth=1.5,
+        #             label=f'10% below quasi-steady state (≈{x_steady:.1f} yrs)')
 
         
         plt.plot(fitted_x, fitted_y,    label=(
@@ -139,14 +141,24 @@ def main():
             rf"$f(x)={params[0]:.1f}e^{{{params[1]*12:.2f}x}}+{params[2]:.1f}$"
         ), linewidth=2, linestyle='--', color = 'black')
         plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
-        plt.legend(fontsize=16, loc='best', frameon=False)
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
-        plt.xlabel("Simulation Year", fontsize=18)
-        plt.ylabel("Black Carbon Burden (Gg)", fontsize=18)
+        plt.legend(fontsize=18, loc='best', frameon=False)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.xlabel("Simulation Year", fontsize=20)
+        plt.ylabel("Black Carbon Burden (Gg)", fontsize=20)
         plt.ylim([0,120])
-        plt.xlim([0,20])
-        plt.text(0.02, 1.05, label[i], transform=plt.gca().transAxes, fontsize=18, fontweight='bold')
+        plt.xlim([0,25])
+        # plt.text(
+        #     17.5,
+        #     0.95,
+        #     "Quasi-steady state",
+        #     transform=plt.gca().get_xaxis_transform(),
+        #     ha="center",
+        #     va="top",
+        #     fontsize=16,
+        #     color=COLORS["gray"],
+        # )
+        plt.text(0.02, 1.05, label[i], transform=plt.gca().transAxes, fontsize=20, fontweight='bold')
         plt.savefig('fig/BC_burdens/'+f'strat_BC_{launch_season_title}_{location}.pdf')
 
 if __name__ == "__main__":

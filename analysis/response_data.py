@@ -8,6 +8,60 @@ import scipy.stats as stats
 
 # To generate climate responses data
 
+def area_weighted_mean(values, weights):
+    values = np.ma.masked_invalid(np.ma.array(values))
+    weights = np.ma.array(weights, mask=np.ma.getmaskarray(values))
+    return np.ma.sum(values * weights) / np.ma.sum(weights)
+
+def global_area_weighted_mean(values):
+    values = np.ma.masked_invalid(np.ma.array(values))
+    area, _, _ = col_area()
+    zonal_area = np.mean(area, axis=1)
+
+    if values.shape[-1] == len(zonal_area):
+        weights = zonal_area
+        # print("Using zonal area weights for global area weighted mean.")
+    elif values.ndim >= 2 and values.shape[-2] == len(zonal_area):
+        weights = zonal_area[:, np.newaxis]
+        # print("Using zonal area weights for global area weighted mean.")
+    else:
+        # print("Warning: Unable to determine appropriate area weights for global area weighted mean. Using unweighted mean instead.")
+        return np.ma.mean(values)
+        
+
+    weights = np.broadcast_to(weights, values.shape)
+    weights = np.ma.array(weights, mask=np.ma.getmaskarray(values))
+    return np.ma.sum(values * weights) / np.ma.sum(weights)
+
+def effective_dof(data, min_dof=2.0):
+    data = np.asarray(data, dtype=float)
+    data = data[np.isfinite(data)]
+    n = len(data)
+    if n <= 1:
+        return None
+    if n <= min_dof + 1 or np.isclose(np.std(data), 0):
+        return n - 1
+
+    rho1 = np.corrcoef(data[1:], data[:-1])[0, 1]
+    if not np.isfinite(rho1) or rho1 <= 0:
+        return n - 1
+
+    neff = n * (1 - rho1) / (1 + rho1)
+    dof = neff - 1
+    return min(max(dof, min_dof), n - 1)
+
+def confidence_error(data, dof):
+    data = np.asarray(data, dtype=float)
+    data = data[np.isfinite(data)]
+    if dof is None or len(data) <= 1:
+        return 0.0
+
+    sem = stats.sem(data)
+    if not np.isfinite(sem):
+        return 0.0
+
+    return float(stats.t.ppf(0.975, df=dof) * sem)
+
 def avg_case_data(dir, response):
     case_list = []
     for root, dirs, files in os.walk(dir):
@@ -16,31 +70,41 @@ def avg_case_data(dir, response):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
     # Exclude first 5 year
-    case_list = case_list[60:]
+    case_list = case_list[120:]
     data_list = []
     for case in case_list:
         nc = NetCDFFile(case)
         if response in ['FLNT', 'FSNT', 'FLNTC', 'FSNTC', 'FLN200', 'FLN200C', 'FSN200', 'FSN200C']:
-            aggregated_data = np.mean(nc.variables[response])
+            aggregated_data = global_area_weighted_mean(nc.variables[response][:])
         elif response == 'O3':
             mol_air = nc.variables['MASS'][0, :, :]*1000/28.97  # (lev, lat)
             O3 = nc.variables['O3'][0, :, :]         # (lev, lat)
             mol_O3 = O3*mol_air
             area, x, y = col_area()
-            zonal_area = np.mean(area, axis=1) # cm^2
+            zonal_area = np.mean(area, axis=1) # cm^2 per-grid-cell area by latitude
             mol_O3percm2 = np.sum(mol_O3/zonal_area,axis = 0)
             DU = mol_O3percm2/4.4615e-8
-            aggregated_data = np.mean(DU)
+            aggregated_data = area_weighted_mean(DU, zonal_area)
         elif response in ['CLOUD','CLDICE', 'CLDLIQ', 'T']:
             aggregated_data_temp = []
-            for a in range(96):
+            response_data = nc.variables[response][:]
+            pressure_weights = pressure_level_weights(nc)
+            nlat = response_data.shape[-1]
+            for a in range(nlat):
                 idx_lower, idx_upper, ratio = find_trop_func(nc, a)
-                X1 = np.mean(nc.variables[response][:, 25:idx_lower[0],a])
-                X2 = np.mean(nc.variables[response][:, 25:idx_upper[0],a]) 
+                X1 = pressure_weighted_mean(
+                    response_data[:, 25:idx_lower[0], a],
+                    pressure_weights[25:idx_lower[0]]
+                )
+                X2 = pressure_weighted_mean(
+                    response_data[:, 25:idx_upper[0], a],
+                    pressure_weights[25:idx_upper[0]]
+                )
                 aggregated_data_1 = X1 * (1 - ratio[0]) + X2 * ratio[0]
                 aggregated_data_temp.append(aggregated_data_1)
-            masked = np.mean(np.ma.masked_array(aggregated_data_temp))
-            aggregated_data = masked
+            area, _, _ = col_area()
+            zonal_area = np.mean(area, axis=1)
+            aggregated_data = area_weighted_mean(aggregated_data_temp, zonal_area[:nlat])
         data_list.append(aggregated_data)
     averaged = [sum(data_list[i:i+12]) / 12 for i in range(0, len(data_list) - len(data_list) % 12, 12)]
     return averaged, data_list
@@ -51,26 +115,15 @@ def processing(dir_control, dir_case, response):
     dir = dir_case
     data_list, _  = avg_case_data(dir, response)
 
-    # dir_all_year_cc = 'results_cloud/lon/JUL_8_30Gg_all_year_CC/'
-    # data_list_all_year_cc, data_list_all_year_cc_error  = avg_case_data(dir_all_year_cc, response)
-    # print(f"Diagnose autocorrelation Lag-1: {response}")
-    x = np.array(data_list) - np.array(data_list_control)  # 1D array
-    rho1 = np.corrcoef(x[1:], x[:-1])[0, 1]
-    Neff, dof_eff = Neff_calculation(rho1)
-
 ## -------------- Delta plot -----------------
     # Prepare differences
     diff = np.array(data_list) - np.array(data_list_control)
     # Calculate statistics
     mean = np.mean(diff)
-    sem = stats.sem(diff)  # Standard error of the mean
-    confidence = 0.95
-    # Get t critical value for 95% CI and n-1 degrees of freedom
-    t_crit = stats.t.ppf((1 + confidence) / 2, df=dof_eff)
-    t_stat = np.mean(diff) / stats.sem(diff)
-    p_value = 2 * stats.t.sf(abs(t_stat), dof_eff)
-    print(f"{response}: {mean:.3f} ± {t_crit * sem:.2f}\n")
-    return mean
+    dof_eff = effective_dof(diff)
+    error = confidence_error(diff, dof_eff)
+    print(f"{response}: {mean:.3f} ± {error:.2f}\n")
+    return float(mean), float(error)
 
 case_list_initial = ['all_year', 'all_year', 'summer', 'winter', 'all_year' ,'all_year', 'summer', 'winter', 'all_year', 'summer', 'winter','all_year','all_year', 'summer', 'winter']
 location_list = ['CC_BC_only', 'SA', 'SA', 'SA', 'AU', 'EQ', 'EQ', 'EQ', 'CC', 'CC', 'CC', 'UK' , 'RU', 'RU', 'RU']
@@ -82,6 +135,7 @@ def main():
     for k, response in enumerate(['T', 'O3', 'FLNT', 'FSNT', 'FLNTC', 'FSNTC']):
     # for k, response in enumerate(['FLNT', 'FSNT', 'FLNTC', 'FSNTC']):
         results = []
+        errors = []
         for i in range(len(case_list_initial)):
             control_list = []
             case_list = []
@@ -110,7 +164,9 @@ def main():
 
             if case_list and control_list:
                 # Store the returned string output into the dictionaries
-                results.append(processing(dir_control, dir_case, response))
+                mean, error = processing(dir_control, dir_case, response)
+                results.append(mean)
+                errors.append(error)
             else:
                 print(f"Warning: Missing files for {case_identifier}. Skipping...")
 
@@ -126,17 +182,30 @@ def main():
         # Write all the accumulated data out to respective text files
         print("\nWriting output to .txt files...")
         write_to_file(f'data_file/{response}.txt', results)
+        write_to_file(f'data_file/{response}_error.txt', errors)
         if response == 'FLNT':
             FLNT = results
+            FLNT_error = errors
         elif response == 'FSNT':
             FSNT = results
+            FSNT_error = errors
         elif response == 'FLNTC':
             FLNTC = results
+            FLNTC_error = errors
         elif response == 'FSNTC':
             FSNTC = results
+            FSNTC_error = errors
     print("Evaluation ERF and ERFC...")
     write_to_file(f'data_file/ERF.txt', (np.array(FSNT) - np.array(FLNT)).tolist())
+    write_to_file(
+        f'data_file/ERF_error.txt',
+        np.sqrt(np.array(FSNT_error)**2 + np.array(FLNT_error)**2).tolist()
+    )
     write_to_file(f'data_file/ERFC.txt', (np.array(FSNTC) - np.array(FLNTC)).tolist())
+    write_to_file(
+        f'data_file/ERFC_error.txt',
+        np.sqrt(np.array(FSNTC_error)**2 + np.array(FLNTC_error)**2).tolist()
+    )
     print("Process Complete!")
 
 if __name__ == "__main__":

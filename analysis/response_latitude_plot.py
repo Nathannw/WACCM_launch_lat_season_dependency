@@ -1,28 +1,30 @@
 from analysis.emission_funcs import *
 from analysis.func import *
+import csv
 import netCDF4 as nc
 from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 from scipy.stats import ttest_1samp, ttest_ind
+from analysis.figure_style import COLORS, panel_label
 
 cases = {
-    'RU':    {'dir': 'JUL_8_30Gg_all_year_RU',          'color': 'black',       'label': '70°N',         'ls': '-'},
-    'UK':    {'dir': 'AUG_13_30Gg_all_year_UK',         'color': 'darkorange',  'label': '55°N',         'ls': '-'},
-    'CC':    {'dir': 'JUL_8_30Gg_all_year_CC',          'color': 'forestgreen', 'label': '29°N',         'ls': '-'},
-    'CC_bc': {'dir': 'AUG_13_30Gg_all_year_CC_BC_only', 'color': 'forestgreen', 'label': '29°N BC-only', 'ls': ':'},
-    'EQ':    {'dir': 'AUG_13_30Gg_all_year_EQ',         'color': 'purple',      'label': '0°N',          'ls': '-'},
-    'SA':    {'dir': 'JUL_8_30Gg_all_year_SA',          'color': 'teal',        'label': '55°S',         'ls': '-'},
-    'AU':    {'dir': 'AUG_13_30Gg_all_year_AU',         'color': 'crimson',     'label': '29°S',         'ls': '-'}
+    'RU':    {'dir': 'JUL_8_30Gg_all_year_RU',          'color': 'black',       'label': '70° N',         'ls': '-'},
+    'UK':    {'dir': 'AUG_13_30Gg_all_year_UK',         'color': COLORS["orange"],     'label': '55° N',         'ls': '-'},
+    'CC':    {'dir': 'JUL_8_30Gg_all_year_CC',          'color': COLORS["green"],      'label': '29° N',         'ls': '-'},
+    'CC_bc': {'dir': 'AUG_13_30Gg_all_year_CC_BC_only', 'color': COLORS["green"],      'label': '29° N BC-only', 'ls': ':'},
+    'EQ':    {'dir': 'AUG_13_30Gg_all_year_EQ',         'color': COLORS["purple"],     'label': '0° N',          'ls': '-'},
+    'AU':    {'dir': 'AUG_13_30Gg_all_year_AU',         'color': COLORS["vermillion"], 'label': '29° S',         'ls': '-'},
+    'SA':    {'dir': 'JUL_8_30Gg_all_year_SA',          'color': COLORS["sky_blue"],   'label': '55° S',         'ls': '-'}
 }
 
 titles_delta = [
-    'Stratospheric Temperature Anomaly (Case – Control) (K)',
-    'Ozone Column Anomaly (Case – Control) (DU)', 
-    'Stratospheric Cloud Fraction Anomaly (Case – Control)',
-    'Stratospheric Cloud Ice Content Anomaly (Case – Control) (kg/kg)',
-    'Stratospheric Cloud Liquid Content Anomaly (Case – Control) (kg/kg)'
+    'Stratospheric temperature anomaly (case minus control) (K)',
+    'Ozone column anomaly (case minus control) (DU)',
+    'Stratospheric cloud fraction anomaly (case minus control)',
+    r'Stratospheric cloud ice content anomaly (case minus control) ($\mathrm{kg}\ \mathrm{kg}_{\mathrm{air}}^{-1}$)',
+    r'Stratospheric cloud liquid content anomaly (case minus control) ($\mathrm{kg}\ \mathrm{kg}_{\mathrm{air}}^{-1}$)'
 ]
 
 responses = ['T', 'O3', 'CLOUD']
@@ -35,8 +37,8 @@ def avg_case_data(dir, response):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
     data_list = []
-    # Exclude first 5 year
-    case_list = case_list[60:]
+    # Exclude first 10 year
+    case_list = case_list[120:]
     for case in case_list:
         nc = NetCDFFile(case)
         # print(nc)
@@ -53,10 +55,18 @@ def avg_case_data(dir, response):
             aggregated_data = DU
         elif response in ['CLOUD','CLDICE', 'CLDLIQ', 'T']:
             aggregated_data_temp = []
+            response_data = nc.variables[response][:]
+            pressure_weights = pressure_level_weights(nc)
             for a in range(96):
                 idx_lower, idx_upper, ratio = find_trop_func(nc, a)
-                X1 = np.mean(nc.variables[response][:, 25:idx_lower[0],a], axis = (0,1))
-                X2 = np.mean(nc.variables[response][:, 25:idx_upper[0],a], axis = (0,1)) 
+                X1 = pressure_weighted_mean(
+                    response_data[:, 25:idx_lower[0], a],
+                    pressure_weights[25:idx_lower[0]]
+                )
+                X2 = pressure_weighted_mean(
+                    response_data[:, 25:idx_upper[0], a],
+                    pressure_weights[25:idx_upper[0]]
+                )
                 aggregated_data_1 = X1 * (1 - ratio[0]) + X2 * ratio[0]
                 aggregated_data_temp.append(aggregated_data_1)
             masked = np.ma.masked_array(aggregated_data_temp)
@@ -66,6 +76,21 @@ def avg_case_data(dir, response):
     averaged = np.mean(data_list, axis = 0)
     averaged_annual = [sum(data_list[i:i+12]) / 12 for i in range(0, len(data_list) - len(data_list) % 12, 12)]
     return averaged, averaged_annual
+
+def save_latitude_diffs(response, lats, case_results):
+    output_path = f'data_file/{response}_lat.csv'
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    with open(output_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['launch_latitude', 'latitude', 'diff'])
+        for case, results in case_results.items():
+            diff = np.ma.asarray(results['diff'], dtype=float).filled(np.nan)
+            launch_latitude = cases[case]['label']
+            for lat, diff_value in zip(lats, diff):
+                writer.writerow([launch_latitude, f"{lat:.10e}", f"{diff_value:.10e}"])
+
+    print(f"Saved: {output_path}")
 
 def main():
     lats = np.loadtxt('geo_file/lat.txt')
@@ -97,8 +122,10 @@ def main():
                 
             case_results[case] = {'diff': diff, 'p_vals': p_vals}
 
+        save_latitude_diffs(response, lats, case_results)
+
         # 3. Plotting
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(8, 8))
         
         for case, cfg in cases.items():
             diff = case_results[case]['diff']
@@ -118,18 +145,20 @@ def main():
 
         # 4. Annotations and Formatting
         if response in ['O3', 'T']:
-            plt.text(0.02, 1.05, '(a)', transform=plt.gca().transAxes, fontsize=12, fontweight='bold')
+            plt.text(0.02, 1.05, panel_label('a'), transform=plt.gca().transAxes, fontsize=17, fontweight='bold')
         elif response == 'CLOUD':
-            plt.text(0.02, 1.05, '(b)', transform=plt.gca().transAxes, fontsize=12, fontweight='bold')
-            plt.ylim([-90, -50])
+            plt.text(0.02, 1.05, panel_label('b'), transform=plt.gca().transAxes, fontsize=17, fontweight='bold')
+            # plt.ylim([-90, -50])
 
-        plt.ylabel("Latitude (°)", fontsize=14)
+        plt.ylabel("Latitude (°)", fontsize=17)
         
         xlabel_title = titles_delta[k] if k < len(titles_delta) else f'{response} Anomaly'
-        plt.xlabel(xlabel_title, fontsize=14)
+        plt.xlabel(xlabel_title, fontsize=17)
         
         plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
-        plt.legend(fontsize=11, loc='best', frameon=False)
+        plt.legend(fontsize=17, loc='best', frameon=False)
+        plt.xticks(fontsize=17)
+        plt.yticks(fontsize=17)
         plt.tight_layout()
         plt.savefig(f'fig/lat/lat_{response}.pdf')
         # plt.show()

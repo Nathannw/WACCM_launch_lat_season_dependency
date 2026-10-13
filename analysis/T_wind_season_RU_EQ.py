@@ -6,6 +6,7 @@ import os
 import pandas as pd
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
+from analysis.figure_style import COLORS, panel_label
 
 # To plot temperature and wind vector anomalies for 70°N and 55°S seasonal cases
 
@@ -29,8 +30,8 @@ def avg_case_data(dir_case, response, range_min, range_max, i):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
 
-    control_list = control_list[60:]
-    case_list = case_list[60:]
+    control_list = control_list[120:]
+    case_list = case_list[120:]
     data_list_vertical = []
     for control, case in zip(control_list, case_list):
         nc = NetCDFFile(control)
@@ -72,22 +73,23 @@ def vertical_plot_deltnew(ax, nc, data, data_wind, data_V,
 
     # Plot altitude vs latitude
     c = ax.pcolormesh(lats, altitudes, data, cmap=color, vmin=vmin, vmax=vmax)
-    ax.quiver(lat2d, alt2d, V_sub, Wzm_sub, scale=7.5, width=0.004, alpha=1, color='#ff3333')
+    ax.quiver(lat2d, alt2d, V_sub, Wzm_sub, scale=7.5, width=0.004, alpha=1, color=COLORS["vermillion"])
     ax.set_title(f"{i_month}")
     ax.set_xlim([-90,90])
     
     return c 
 
-alp = '(d)'
+alp = panel_label('e')
 dir_control = 'results_cloud/lon/JUL_8_control/'
 
 
-month = ['JJA (70°N Summer-only)', 'JJA (70°N Winter-only)', 'DJF (55°S Summer-only)', 'DJF (55°S Winter-only)']
+month = ['JJA (70° N Summer-only)', 'JJA (70° N Winter-only)', 'DJF (0° N Summer-only)', 'DJF (0° N Winter-only)']
 i_list = [6, 6 ,0, 0]
-dir_case_list = ['results_cloud/lon/JUL_8_30Gg_summer_RU/', 'results_cloud/lon/JUL_8_30Gg_winter_RU/', 'results_cloud/lon/JUL_8_30Gg_summer_SA/', 'results_cloud/lon/JUL_8_30Gg_winter_SA/']
+dir_case_list = ['results_cloud/lon/JUL_8_30Gg_summer_RU/', 'results_cloud/lon/JUL_8_30Gg_winter_RU/', 'results_cloud/lon/AUG_13_30Gg_summer_EQ/', 'results_cloud/lon/AUG_13_30Gg_winter_EQ/']
 
 def main():
-    fig, axes = plt.subplots(1, 4, figsize=(12, 4))
+    # fig, axes = plt.subplots(1, 4, figsize=(12, 4))
+    fig, axes = plt.subplots(1, 4, figsize=(16, 4))
     for j, i in enumerate(i_list):
         dir_case = dir_case_list[j]
         # --- Load data ---
@@ -153,19 +155,18 @@ def main():
     fig.colorbar(c, cax=cbar_ax, label="K")
 
     # --- Shared labels ---
-    fig.text(0.025, 0.95, f"{alp}", fontsize=12, fontweight="bold", va="center")
-    fig.text(0.5, 0.025, "Latitude (°)", ha="center", fontsize=14)
-    fig.text(0.025, 0.5, "Altitude (km)", va="center", rotation="vertical", fontsize=14)
+    fig.text(0.025, 0.95, f"{alp}", fontsize=16, fontweight="bold", va="center")
+    fig.text(0.5, 0.025, "Latitude (°)", ha="center", fontsize=16)
+    fig.text(0.025, 0.5, "Altitude (km)", va="center", rotation="vertical", fontsize=16)
 
 
 
     plt.tight_layout(rect=[0.05, 0.05, 0.9, 1])  # rect=[left, bottom, right, top]
-    plt.savefig(f'fig/T_wind/4panel_T_RU_SA.pdf')
+    plt.savefig(f'fig/T_wind/4panel_T_RU_EQ.pdf')
     # plt.show()
 
 if __name__ == "__main__":
     main()
-
 
 
 

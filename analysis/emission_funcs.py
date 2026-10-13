@@ -1,11 +1,24 @@
-from netCDF4 import Dataset
+try:
+    from netCDF4 import Dataset
+except ImportError:
+    Dataset = None
 import numpy as np
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 from datetime import datetime, timedelta
-from mpl_toolkits.basemap import Basemap
+try:
+    from mpl_toolkits.basemap import Basemap
+except ImportError:
+    Basemap = None
 import matplotlib.pyplot as plt
-import seaborn as sns
+from matplotlib.ticker import MaxNLocator
+# import seaborn as sns
 import pickle
+from analysis.figure_style import apply_journal_style
+
+apply_journal_style()
 # Note: Only use for 1.9x2.5 grid
 # Falcon 9
 
@@ -69,7 +82,31 @@ def create_min_distance_mask(lat_grid, lon_grid, launch_lat, launch_lon):
     return mask, min_index
 
 # Obtaining altitude emission profile
-def emission_profile(alt_bin, emission_rate):
+def emission_profile(alt_bin, emission_rate, profile_xlims=None):
+    """Calculate emissions and plot profiles with optional per-species x-limits.
+
+    Example: profile_xlims={"BC": (0, 250), "H2O": (0, 40000), "NOx": (0, 2500)}
+    """
+    if pd is None:
+        raise ImportError("emission_profile requires pandas")
+
+    # if profile_xlims is None:
+    #     profile_xlims = {}
+    profile_xlims = {"BC": (0, 250), "H2O": (0, 40000), "NOx": (0, 2500)}
+    valid_species = {"BC", "H2O", "NOx"}
+    unknown_species = set(profile_xlims) - valid_species
+    if unknown_species:
+        raise ValueError(f"Unknown profile_xlims keys: {sorted(unknown_species)}")
+    for species, limits in profile_xlims.items():
+        try:
+            xmin, xmax = limits
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"profile_xlims['{species}'] must be (xmin, xmax)"
+            ) from error
+        if xmin >= xmax:
+            raise ValueError(f"profile_xlims['{species}'] must be (xmin, xmax)")
+
     # Load CSV file
     df = pd.read_csv("Falcon9_trajectory_THAICOM_8.csv")
 
@@ -158,58 +195,46 @@ def emission_profile(alt_bin, emission_rate):
     Altitude = np.linalg.norm(X_ref_final[:, 0:3], axis=1) - R_E
     plt.plot(df["Time_s"], df["Altitude in km"], label = "SpaceX Webcast Data", linestyle = ':')
     plt.plot(times, Altitude/1e3, label = "Max PL Simulated Traj")
-    plt.xlabel('Time [s]')
-    plt.ylabel('Altitude [km]')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Altitude (km)')
     plt.ylim([0,100])
     plt.xlim([0,200])
     plt.legend()
     plt.savefig("fig/emission_profile/time_vs_altitude_webcast.pdf")
     plt.show()
 
-    # --- 2. Altitude vs NOx mass deposited ---
-    plt.figure(figsize=(8,6))
-    plt.barh(altitude_bin, NOx_kg, height=alt_bin/1000 * 0.9, color='black', edgecolor='black')
-    plt.ylabel("Altitude (km)", fontsize=18)
-    plt.xlabel("NO$_x$ mass deposited (kg)", fontsize=18)
-    plt.ylim([0,70])
-    sns.despine()
-    # plt.tight_layout()
-    plt.legend(fontsize=16, loc='best', frameon=False)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
-    plt.savefig("fig/emission_profile/altitude_vs_NOx_kg.pdf")
-    plt.show()
+    # --- 2. Altitude emission profiles ---
+    fig, axes = plt.subplots(1, 3, figsize=(10, 3), sharey=True)
+    panel_specs = (
+        ("BC", "(a)", BC_kg, "BC mass deposited\nper launch (kg)"),
+        ("H2O", "(b)", H2O_kg, "H$_2$O mass deposited\nper launch (kg)"),
+        ("NOx", "(c)", NOx_kg, "NO$_x$ mass deposited\nper launch (kg)"),
+    )
+    visible_altitudes = (altitude_bin >= 0) & (altitude_bin < 70)
 
-    # --- 3. Altitude vs BC mass deposited ---
-    plt.figure(figsize=(8,6))
-    plt.barh(altitude_bin, BC_kg, height=alt_bin/1000 * 0.9, color='black', edgecolor='black')
-    plt.ylabel("Altitude (km)", fontsize=18)
-    plt.xlabel("BC mass deposited (kg)", fontsize=18)
-    plt.ylim([0,70])
-    plt.xlim([0,400])
-    sns.despine()
-    plt.legend(fontsize=16, loc='best', frameon=False)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
-    plt.savefig("fig/emission_profile/altitude_vs_BC_kg.pdf")
-    plt.show()
+    for ax, (species, panel_label, profile, xlabel) in zip(axes, panel_specs):
+        ax.barh(
+            altitude_bin[visible_altitudes],
+            np.asarray(profile)[visible_altitudes],
+            height=alt_bin / 1000 * 0.9,
+            color="black",
+            edgecolor="black",
+        )
+        ax.set_title(panel_label, loc="left", fontsize=12, fontweight="bold", pad=5)
+        ax.set_xlabel(xlabel, fontsize=14)
+        ax.set_ylim(0, 70)
+        if species in profile_xlims:
+            ax.set_xlim(profile_xlims[species])
+        ax.tick_params(labelsize=12)
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+        ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+        ax.set_axisbelow(True)
 
-    # --- 4. Altitude vs H2O mass deposited ---
-    plt.figure(figsize=(8,6))
-    plt.barh(altitude_bin, H2O_kg, height=alt_bin/1000 * 0.9, color='black', edgecolor='black')
-    plt.ylabel("Altitude (km)", fontsize=18)
-    plt.xlabel("H$_2$O mass deposited (kg)", fontsize=18)
-    plt.ylim([0,70])
-    sns.despine()
-    # plt.tight_layout()
-    plt.legend(fontsize=16, loc='best', frameon=False)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
-    plt.savefig("fig/emission_profile/altitude_vs_H2O_kg.pdf")
-    plt.show()
+    axes[0].set_ylabel("Altitude (km)", fontsize=14)
+    fig.tight_layout(w_pad=1.5)
+    fig.savefig("fig/emission_profile/altitude_emission_profiles.pdf", bbox_inches="tight")
+    # plt.show()
+    plt.close(fig)
 
     return BC_kg_yearly, NOx_kg_yearly, H2O_kg_yearly
 
@@ -219,65 +244,142 @@ def julday(month, day, year):
     curr_date = datetime(year, month, day)
     return (curr_date - ref_date).days
 
-def horizontal_plot(nc):
+def horizontal_plot(
+    nc,
+    variable_name="emiss_rocket",
+    title=None,
+    save_path=None,
+    vmin=None,
+    vmax=None,
+    cbar_label=None,
+    show=False,
+    cmap="viridis",
+):
     # Extract data
-    aggregated_data = np.sum(nc.variables['emiss_rocket'][:, :, :, :], axis=(0,1))  # Sum over altitude
+    variable = nc.variables[variable_name]
+    data = variable[:]
+    if data.ndim == 4:
+        aggregated_data = np.sum(data, axis=(0, 1))  # Sum over time and altitude
+    elif data.ndim == 3:
+        aggregated_data = np.sum(data, axis=0)  # Sum over time
+    elif data.ndim == 2:
+        aggregated_data = data
+    else:
+        raise ValueError(f"{variable_name} must be 2D, 3D, or 4D; got shape {data.shape}")
+    aggregated_data = np.ma.filled(aggregated_data, np.nan)
     # aggregated_data = np.transpose(aggregated_data)
     # aggregated_data = np.sum(aggregated_data, axis=2)  # Sum over time
     lats = nc.variables['lat'][:]
     lons = nc.variables['lon'][:]
 
     lon, lat = np.meshgrid(lons, lats)
-    # Get some parameters for the Stereographic Projection
-    lon_0 = lons.mean()
-    lat_0 = lats.mean()
-
-    m = Basemap(width=5000000,height=3500000,
-                resolution='l',projection='stere',\
-                lat_ts=40,lat_0=lat_0,lon_0=lon_0)
-    xi, yi = m(lon, lat)
 
     # Create figure
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    # Initialize Basemap
-    m = Basemap(projection='cyl', llcrnrlat=lat.min(), urcrnrlat=lat.max(),
-                llcrnrlon=lon.min(), urcrnrlon=lon.max(), resolution='l', ax=ax)
+    if vmin is None and variable_name == "emiss_rocket":
+        vmin = 1
+    if vmax is None and variable_name == "emiss_rocket":
+        vmax = 100
+    if cbar_label is None:
+        cbar_label = getattr(variable, "units", "molecules/cm3/s")
 
-    # Draw map features
-    m.drawcoastlines()
-    m.drawcountries()
-    m.drawparallels(np.arange(-90, 91, 20), labels=[1, 0, 0, 0], linewidth=0.2)
-    m.drawmeridians(np.arange(-180, 181, 30), labels=[0, 0, 0, 1], linewidth=0.2)
+    if Basemap is not None:
+        # Initialize Basemap
+        m = Basemap(projection='cyl', llcrnrlat=lat.min(), urcrnrlat=lat.max(),
+                    llcrnrlon=lon.min(), urcrnrlon=lon.max(), resolution='l', ax=ax)
 
-    cs = m.pcolormesh(lon, lat, aggregated_data, latlon=True, shading='auto',
-                    vmin=1, vmax=100)
+        # Draw map features
+        m.drawcoastlines()
+        m.drawcountries()
+        m.drawparallels(np.arange(-90, 91, 20), labels=[1, 0, 0, 0], linewidth=0.2)
+        m.drawmeridians(np.arange(-180, 181, 30), labels=[0, 0, 0, 1], linewidth=0.2)
 
+        cs = m.pcolormesh(lon, lat, aggregated_data, latlon=True, shading='auto',
+                          vmin=vmin, vmax=vmax, cmap=cmap)
+        cbar = m.colorbar(cs, location='bottom', pad="10%")
+    else:
+        cs = ax.pcolormesh(lons, lats, aggregated_data, shading='auto',
+                           vmin=vmin, vmax=vmax, cmap=cmap)
+        ax.set_xlabel("Longitude")
+        ax.set_ylabel("Latitude")
+        cbar = fig.colorbar(cs, ax=ax, location="bottom", pad=0.15)
 
-    cbar = m.colorbar(cs, location='bottom', pad="10%")
-    cbar.set_label("molecules/cm3/s")
+    cbar.set_label(cbar_label)
+    if title:
+        ax.set_title(title)
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
 
     # Show plot
-    plt.show()
+    if show:
+        plt.show()
+    return fig, ax
 
-def vertical_plot(nc):
+def vertical_plot(
+    nc,
+    variable_name="emiss_rocket",
+    title=None,
+    save_path=None,
+    vmin=None,
+    vmax=None,
+    cbar_label=None,
+    show=False,
+    cmap="viridis",
+):
     # Load dataset (assuming nc is already loaded)
-    data = np.sum(nc.variables['emiss_rocket'][:, :, :, :], axis=(0, 3))  # Sum over time and longitude (time, altitude, lat, lon)
+    variable = nc.variables[variable_name]
+    raw_data = variable[:]
+    if raw_data.ndim == 4:
+        data = np.sum(raw_data, axis=(0, 3))  # Sum over time and longitude (time, altitude, lat, lon)
+    elif raw_data.ndim == 3:
+        data = np.sum(raw_data, axis=0)
+    elif raw_data.ndim == 2:
+        data = raw_data
+    else:
+        raise ValueError(f"{variable_name} must be 2D, 3D, or 4D; got shape {raw_data.shape}")
+    data = np.ma.filled(data, np.nan)
     # data = np.transpose(data)     
-    altitudes = nc.variables['altitude'][:]  # Extract altitude levels
+    if 'altitude' in nc.variables:
+        altitudes = nc.variables['altitude'][:]  # Extract altitude levels
+        altitude_label = f"Altitude ({getattr(nc.variables['altitude'], 'units', 'km')})"
+    elif 'Z3' in nc.variables:
+        altitudes = np.mean(nc.variables['Z3'][:], axis=(0, 3)) / 1000
+        altitude_label = "Altitude (km)"
+    elif 'lev' in nc.variables:
+        altitudes = nc.variables['lev'][:]
+        altitude_label = f"Pressure ({getattr(nc.variables['lev'], 'units', 'hPa')})"
+    else:
+        raise ValueError("Expected an 'altitude', 'Z3', or 'lev' variable for vertical plotting")
     lats = nc.variables['lat'][:]  # Extract latitudes
+    if cbar_label is None:
+        cbar_label = getattr(variable, "units", "molecules/cm3/s")
 
     # Create figure
     fig, ax = plt.subplots(figsize=(8, 6))
 
     # Plot altitude vs latitude
-    c = ax.pcolormesh(lats, altitudes, data, shading='auto')#, vmin=1, vmax=1000000)
+    if np.ndim(altitudes) == 2:
+        lat_grid = np.broadcast_to(lats[np.newaxis, :], data.shape)
+        c = ax.pcolormesh(lat_grid, altitudes, data, shading='auto',
+                          vmin=vmin, vmax=vmax, cmap=cmap)
+    else:
+        c = ax.pcolormesh(lats, altitudes, data, shading='auto',
+                          vmin=vmin, vmax=vmax, cmap=cmap)
     cbar = plt.colorbar(c, ax=ax)
-    cbar.set_label("molecules/cm3/s")
+    cbar.set_label(cbar_label)
 
     # Labels and title
     ax.set_xlabel("Latitude")
-    ax.set_ylabel("Altitude (m)")
+    ax.set_ylabel(altitude_label)
+    if title:
+        ax.set_title(title)
+    if 'lev' in nc.variables and 'altitude' not in nc.variables and 'Z3' not in nc.variables:
+        ax.invert_yaxis()
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
 
     # Show plot
-    plt.show()
+    if show:
+        plt.show()
+    return fig, ax

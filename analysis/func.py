@@ -80,3 +80,29 @@ def find_trop_func(nc, i):
     # print(TROP_P, idx_lower, idx_upper, ratio, LEV[idx_lower], LEV[idx_upper], LEV[idx_lower] * (1 - ratio) + LEV[idx_upper] * ratio)
 
     return idx_lower, idx_upper, ratio
+
+
+def pressure_level_weights(nc):
+    lev = np.asarray(nc["lev"][:], dtype=float)
+    if "ilev" in nc.variables and len(nc["ilev"][:]) == len(lev) + 1:
+        edges = np.asarray(nc["ilev"][:], dtype=float)
+    else:
+        mid_edges = 0.5 * (lev[:-1] + lev[1:])
+        first_edge = lev[0] - (mid_edges[0] - lev[0])
+        last_edge = lev[-1] + (lev[-1] - mid_edges[-1])
+        edges = np.concatenate(([first_edge], mid_edges, [last_edge]))
+
+    return np.abs(np.diff(edges))
+
+
+def pressure_weighted_mean(values, weights):
+    values = np.ma.masked_invalid(np.ma.array(values))
+    weights = np.ma.masked_invalid(np.ma.array(weights))
+    if values.ndim > weights.ndim:
+        weights = np.reshape(weights, (1,) * (values.ndim - weights.ndim) + weights.shape)
+    weights = np.broadcast_to(weights, values.shape)
+    weights = np.ma.array(
+        weights,
+        mask=np.ma.getmaskarray(values) | np.ma.getmaskarray(weights)
+    )
+    return np.ma.sum(values * weights) / np.ma.sum(weights)

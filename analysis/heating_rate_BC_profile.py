@@ -5,6 +5,7 @@ import numpy as np
 import os
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
+from analysis.figure_style import panel_label
 
 # To produce Figure 4 d, e, f, g, and h
 
@@ -28,17 +29,17 @@ def vertical_plot_delta_no_sig(nc, data, label, name,
         pad=0.2,   # increase spacing
         aspect=30
     )
-    cbar.set_label(unit, fontsize=12)
-    cbar.ax.tick_params(labelsize=10)
+    cbar.set_label(unit, fontsize=15)
+    cbar.ax.tick_params(labelsize=15)
 
 
     # Axis labels
-    ax.set_xlabel("Latitude (°)", fontsize=12)
-    ax.set_ylabel("Altitude (km)", fontsize=12)
+    ax.set_xlabel("Latitude (°)", fontsize=15)
+    ax.set_ylabel("Altitude (km)", fontsize=15)
     ax.set_xlim([-90, 90])
 
     # Tick formatting
-    ax.tick_params(axis="both", which="major", labelsize=10)
+    ax.tick_params(axis="both", which="major", labelsize=15)
 
 
     X, Y = np.meshgrid(lats, altitudes)
@@ -51,14 +52,14 @@ def vertical_plot_delta_no_sig(nc, data, label, name,
     ax2.set_yticks(altitudes[idx])
     ax2.set_yticklabels(np.round(lev[idx], 1))
 
-    ax2.set_ylabel("Pressure (hPa)", fontsize=12)
+    ax2.set_ylabel("Pressure (hPa)", fontsize=14)
 
     # Border thickness
     for spine in ax.spines.values():
         spine.set_linewidth(1)
 
     # Layout and save (vector format, high res)
-    plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=12, fontweight='bold')
+    plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=15, fontweight='bold')
     plt.tight_layout()
     plt.savefig(f"fig/BC/BC_{name}.pdf", bbox_inches="tight")
     # plt.show()
@@ -83,17 +84,17 @@ def vertical_plot_delta_sig(nc, data, label, name,
         pad=0.2,   # increase spacing
         aspect=30
     )
-    cbar.set_label(unit, fontsize=12)
-    cbar.ax.tick_params(labelsize=10)
+    cbar.set_label(unit, fontsize=15)
+    cbar.ax.tick_params(labelsize=15)
 
 
     # Axis labels
-    ax.set_xlabel("Latitude (°)", fontsize=12)
-    ax.set_ylabel("Altitude (km)", fontsize=12)
+    ax.set_xlabel("Latitude (°)", fontsize=15)
+    ax.set_ylabel("Altitude (km)", fontsize=15)
     ax.set_xlim([-90, 90])
 
     # Tick formatting
-    ax.tick_params(axis="both", which="major", labelsize=10)
+    ax.tick_params(axis="both", which="major", labelsize=15)
     # --- Mask non-significant regions ---
     mask = p_val > 0.05  # True where NOT significant
 
@@ -114,7 +115,7 @@ def vertical_plot_delta_sig(nc, data, label, name,
     ax2.set_yticks(altitudes[idx])
     ax2.set_yticklabels(np.round(lev[idx], 1))
 
-    ax2.set_ylabel("Pressure (hPa)", fontsize=12)
+    ax2.set_ylabel("Pressure (hPa)", fontsize=15)
 
     # ax.set_title(f"{season}", fontsize=12, pad=10)
 
@@ -123,7 +124,7 @@ def vertical_plot_delta_sig(nc, data, label, name,
         spine.set_linewidth(1)
 
     # Layout and save (vector format, high res)
-    plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=12, fontweight='bold')
+    plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.savefig(f"fig/QRS/QRS_{name}.pdf", bbox_inches="tight")
     # plt.show()
@@ -148,8 +149,8 @@ def avg_case_data(dir_case, response, range_min, range_max):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
 
-    control_list = control_list[60:]
-    case_list = case_list[60:]
+    control_list = control_list[120:]
+    case_list = case_list[120:]
     data_list_vertical = []
     for control, case in zip(control_list, case_list):
         nc = NetCDFFile(control)
@@ -166,9 +167,9 @@ def avg_case_data(dir_case, response, range_min, range_max):
 
 dir_control = 'results_cloud/lon/JUL_8_control/'
 dir_case_list_QRS = ['results_cloud/lon/JUL_8_30Gg_summer_RU/', 'results_cloud/lon/JUL_8_30Gg_winter_RU/']
-alp_QRS = ['(g)', '(h)']
-dir_case_list_BC = ['results_cloud/lon/AUG_13_30Gg_all_year_AU/', 'results_cloud/lon/JUL_8_30Gg_all_year_RU/', 'results_cloud/lon/AUG_13_30Gg_all_year_EQ/']
-alp_BC = ['(d)', '(e)', '(f)']
+alp_QRS = [panel_label('g'), panel_label('h')]
+dir_case_list_BC = ['results_cloud/lon/AUG_13_30Gg_all_year_AU/', 'results_cloud/lon/JUL_8_30Gg_all_year_RU/', 'results_cloud/lon/AUG_13_30Gg_summer_EQ/']
+alp_BC = [panel_label('d'), panel_label('e'), panel_label('f')]
 nc = NetCDFFile('results_cloud/lon/JUL_8_control/JUL_8_control.cam.h0.1999-12.nc')
 
 def main():
@@ -196,12 +197,12 @@ def main():
                 p_val = 2 * stats.t.sf(abs(t_stat[l,k]), dof_eff)
                 p_val_correct[l,k] = p_val
 
-        vertical_plot_delta_sig(nc, QRS, alp_QRS[i],i, 18, None, -1e-5, 2.5e-5, 'K/s',p_val_correct, 'viridis')
+        vertical_plot_delta_sig(nc, QRS, alp_QRS[i],i, 18, None, -1e-5, 2.5e-5, r'$\mathrm{K}\ \mathrm{s}^{-1}$',p_val_correct, 'viridis')
     for i, case in enumerate(dir_case_list_BC):
         bc_a1, _ = avg_case_data(case, 'bc_a1', 18, None)
         bc_a4, _ = avg_case_data(case, 'bc_a4', 18, None)
         bc = bc_a1 + bc_a4
-        vertical_plot_delta_no_sig(nc, bc, alp_BC[i],i, 18, None, None, 1e-9, 'kg/kg', 'viridis')
+        vertical_plot_delta_no_sig(nc, bc, alp_BC[i],i, 18, None, None, 1e-9, r'$\mathrm{kg}_{\mathrm{BC}}\ \mathrm{kg}_{\mathrm{air}}^{-1}$', 'viridis')
 
 if __name__ == "__main__":
     main()

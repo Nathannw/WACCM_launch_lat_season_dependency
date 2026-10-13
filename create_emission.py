@@ -4,6 +4,8 @@ from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 
+# from analysis.emission_funcs import _plot_emission_comparison
+
 # To create the emission files of Black Carbon, NOx and H2O in .nc to be ready for WACCM
 
 def create_emission(launch_lat, launch_lon, launch_season, dir, max_alt = 70):
@@ -139,12 +141,13 @@ cases = {
     "RU": {"lat": 70, "lon": 120},
     "SA": {"lat": -55, "lon": -68},
     "EQ": {"lat": 0, "lon": -50},
+    "ID": {"lat": 0, "lon": 104},
     "UK": {"lat": 55, "lon": -1.6},
     "AU": {"lat": -29, "lon": 153.5},
 }
 
 # Select emission case
-selected_case = "CC"
+selected_case = "ID"
 launch_season = "all_year"
 max_alt = 70  # km
 
@@ -153,5 +156,4 @@ launch_lon = cases[selected_case]["lon"]
 
 dir = f"emission_file/lat_{format_lat(launch_lat)}lon_{format_lon(launch_lon)}_{launch_season}_30Gg/"
 # ----------------------
-
 create_emission(launch_lat, launch_lon, launch_season, dir, max_alt=max_alt)

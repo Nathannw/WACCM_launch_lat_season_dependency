@@ -5,6 +5,7 @@ import numpy as np
 import os
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
+from analysis.figure_style import COLORS, panel_label
 
 # To plot temperature and wind vector anomalies
 
@@ -28,8 +29,8 @@ def avg_case_data(dir_case, response, range_min, range_max, i):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
 
-    control_list = control_list[60:]
-    case_list = case_list[60:]
+    control_list = control_list[120:]
+    case_list = case_list[120:]
     data_list_vertical = []
     for control, case in zip(control_list, case_list):
         nc = NetCDFFile(control)
@@ -71,7 +72,7 @@ def vertical_plot_deltnew(ax, nc, data, data_wind, data_V,
 
     # Plot altitude vs latitude
     c = ax.pcolormesh(lats, altitudes, data, cmap=color, vmin=vmin, vmax=vmax)
-    ax.quiver(lat2d, alt2d, V_sub, Wzm_sub, scale=7.5, width=0.004, alpha=1, color='#ff3333')
+    ax.quiver(lat2d, alt2d, V_sub, Wzm_sub, scale=7.5, width=0.004, alpha=1, color=COLORS["vermillion"])
     ax.set_title(f"{i_month}")
     ax.set_xlim([-90,90])
     
@@ -82,7 +83,7 @@ case_list_initial = ['all_year', 'all_year', 'summer', 'winter', 'all_year' ,'al
 location_list = ['CC_BC_only', 'SA', 'SA', 'SA', 'AU', 'EQ', 'EQ', 'EQ', 'CC', 'CC', 'CC', 'UK' , 'RU', 'RU', 'RU']
 lat_list = [29,-55,-55,-55,-29,-0,0,0,29,29,29,55,70,70,70]
 date_list = ['AUG_13', 'JUL_8','JUL_8','JUL_8','AUG_13','AUG_13','AUG_13','AUG_13','JUL_8','JUL_8','JUL_8','AUG_13','JUL_8','JUL_8','JUL_8']
-alp = ['','(a)','','','','','','','','','','(b)','(c)','','',]
+alp = ['', panel_label('d'), '', '', '', panel_label('c'), '', '', panel_label('b'), '', '', '', panel_label('a'), '', '']
 
 def main():
     for m in range(len(case_list_initial)):
@@ -95,7 +96,7 @@ def main():
         dir_case = f'results_cloud/lon/{case_identifier}/'
         dir_control = 'results_cloud/lon/JUL_8_control/'
 
-        fig, axes = plt.subplots(1, 4, figsize=(12, 4))
+        fig, axes = plt.subplots(1, 4, figsize=(16, 4))
 
         month = ['DJF', 'MAM', 'JJA', 'SON']
         i_list = [0, 3, 6, 9]
@@ -163,9 +164,9 @@ def main():
         cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
         fig.colorbar(c, cax=cbar_ax, label="K")
         # --- Shared labels ---
-        fig.text(0.025, 0.95, f"{alp[m]}", fontsize=12, fontweight="bold", va="center")
-        fig.text(0.5, 0.025, "Latitude (°)", ha="center", fontsize=14)
-        fig.text(0.025, 0.5, "Altitude (km)", va="center", rotation="vertical", fontsize=14)
+        fig.text(0.025, 0.95, f"{alp[m]}", fontsize=16, fontweight="bold", va="center")
+        fig.text(0.5, 0.025, "Latitude (°)", ha="center", fontsize=16)
+        fig.text(0.025, 0.5, "Altitude (km)", va="center", rotation="vertical", fontsize=16)
 
 
         if launch_season == 'summer':
@@ -181,5 +182,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
