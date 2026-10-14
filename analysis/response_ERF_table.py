@@ -106,7 +106,7 @@ def processing(dir_control, dir_case, response):
     t_crit = stats.t.ppf((1 + confidence) / 2, df=dof_eff)
     t_stat = np.mean(diff) / stats.sem(diff)
     p_value = 2 * stats.t.sf(abs(t_stat), dof_eff)
-    print(f"ERF: {mean:.2f} ± {t_crit * sem:.2f}")
+    print(f"{mean:.2f} ± {t_crit * sem:.2f}")
     return mean
 
 def main(response):

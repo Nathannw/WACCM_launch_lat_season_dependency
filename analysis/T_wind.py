@@ -3,6 +3,7 @@ from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
 from analysis.figure_style import COLORS, panel_label
@@ -177,7 +178,13 @@ def main():
             launch_season_title = 'Year-Round'
             
         plt.tight_layout(rect=[0.05, 0.05, 0.9, 1])  # rect=[left, bottom, right, top]
-        plt.savefig(f'fig/T_wind/4panel_{location}_{launch_season_title}.pdf')
+        output_path = (
+            Path("fig")
+            / "T_wind"
+            / f"4panel_{location}_{launch_season_title}.pdf"
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_path)
         # plt.show()
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 from scipy.interpolate import PchipInterpolator
 from analysis.func import *
 from analysis.figure_style import COLORS, panel_label
@@ -44,7 +45,9 @@ def plot(data, data_s, data_w, label, alphabet, response, legend,
     plt.tight_layout()
 
     # Save high-resolution version (for journal submission)
-    plt.savefig(f"fig/response/{response}_vs_launch_latitude.pdf")
+    output_path = Path("fig") / "response" / f"{response}_vs_launch_latitude.pdf"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path)
 
     # Show plot
     # plt.show()

@@ -69,7 +69,7 @@ def avg_case_data(dir, response):
             if file.endswith('.nc'):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
-    # Exclude first 5 year
+    # Exclude first 10 year
     case_list = case_list[120:]
     data_list = []
     for case in case_list:

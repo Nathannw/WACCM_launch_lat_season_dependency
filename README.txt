@@ -54,7 +54,7 @@ To generate emission files, run:
 'create_emission.py'
 The 'create_emission.py' script requires the launch location (latitude and longitude) and the launch season as inputs. 
 This generates Black Carbon emissions between 11–70 km at a total rate of 30 Gg per year and output as .nc files store under 'emission_file/*case*/'.
-The `emission_profile` function inside `analysis/emission_funcs.py` reads `Falcon9_trajectory_THAICOM_8.csv`. 
+The `emission_profile` function inside `analysis/emission_funcs.py` reads `launch_trajectory/Falcon9_trajectory_THAICOM_8.csv`.
 It calculates the altitude profile of Falcon 9 emissions before applying the relevant emission indices. 
 
 Running the Analysis
@@ -66,10 +66,9 @@ Execute Analysis:
     * Computes additional data used to construct the tables presented in the manuscript.
 
 Analysis for Appendices:
-    Appendix A:
-    Appendix B:
-    Appendix C:
-    Appendix D:
+    Appendix A: analysis/plot_webcast_vs_max_pl_emissions.py
+    Appendix B: analysis/plot_altitude_vs_downrange.py
+    Appendix C and D: analysis/compare_cases.py
 
 Use and Access:
 This data set is made available under a Creative Commons Public Domain license (CC0 1.0).

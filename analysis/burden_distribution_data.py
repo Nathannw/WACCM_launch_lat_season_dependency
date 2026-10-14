@@ -318,7 +318,7 @@ def main():
                     case_list.append(os.path.join(root, file))
         case_list.sort(key=lambda x: os.path.basename(x).lower())
 
-        # Exclude first 5 year
+        # Exclude first 10 year
         control_list = control_list[120:]
         case_list = case_list[120:]
         

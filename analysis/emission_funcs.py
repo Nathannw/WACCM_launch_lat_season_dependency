@@ -124,7 +124,12 @@ def emission_profile(alt_bin, emission_rate, profile_xlims=None):
             raise ValueError(f"profile_xlims['{species}'] must be (xmin, xmax)")
 
     # Load CSV file
-    df = pd.read_csv("Falcon9_trajectory_THAICOM_8.csv")
+    trajectory_path = (
+        Path(__file__).resolve().parent.parent
+        / "launch_trajectory"
+        / "Falcon9_trajectory_THAICOM_8.csv"
+    )
+    df = pd.read_csv(trajectory_path)
 
     burntime_1st_stage = 162 # s
     burntime_2nd_stage = 397 # s

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from pathlib import Path
 from scipy.stats import pearsonr
 import numpy as np
 from analysis.func import *
@@ -70,7 +71,9 @@ def plotting(
     plt.tight_layout()
 
     # Save high-resolution version (for journal submission)
-    plt.savefig(f"fig/correlation/{fig_name}.pdf")
+    output_path = Path("fig") / "correlation" / f"{fig_name}.pdf"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path)
 
     # Show plot
     # plt.show()

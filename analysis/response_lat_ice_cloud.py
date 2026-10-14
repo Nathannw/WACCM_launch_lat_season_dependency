@@ -5,6 +5,7 @@ from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 from scipy.stats import ttest_1samp, ttest_ind
 from analysis.figure_style import COLORS, panel_label
 
@@ -18,7 +19,7 @@ def avg_case_data(dir, response):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
     data_list = []
-    # Exclude first 5 years
+    # Exclude first 10 years
     case_list = case_list[120:]
     for case in case_list:
         nc = NetCDFFile(case)
@@ -143,7 +144,9 @@ def main():
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.tight_layout()
-    plt.savefig('fig/lat/lat_cloud_ice_liquid.pdf')
+    output_path = Path("fig") / "lat" / "lat_cloud_ice_liquid.pdf"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path)
     # plt.show()
 
 if __name__ == "__main__":

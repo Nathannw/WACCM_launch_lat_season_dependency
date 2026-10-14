@@ -3,6 +3,7 @@ from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 from scipy.optimize import curve_fit
 from analysis.emission_funcs import *
 from analysis.func import *
@@ -159,7 +160,13 @@ def main():
         #     color=COLORS["gray"],
         # )
         plt.text(0.02, 1.05, label[i], transform=plt.gca().transAxes, fontsize=20, fontweight='bold')
-        plt.savefig('fig/BC_burdens/'+f'strat_BC_{launch_season_title}_{location}.pdf')
+        output_path = (
+            Path("fig")
+            / "BC_burdens"
+            / f"strat_BC_{launch_season_title}_{location}.pdf"
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_path)
 
 if __name__ == "__main__":
     main()

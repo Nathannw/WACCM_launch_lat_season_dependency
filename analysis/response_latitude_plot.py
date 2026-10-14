@@ -6,6 +6,7 @@ from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 from scipy.stats import ttest_1samp, ttest_ind
 from analysis.figure_style import COLORS, panel_label
 
@@ -160,7 +161,9 @@ def main():
         plt.xticks(fontsize=17)
         plt.yticks(fontsize=17)
         plt.tight_layout()
-        plt.savefig(f'fig/lat/lat_{response}.pdf')
+        output_path = Path("fig") / "lat" / f"lat_{response}.pdf"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_path)
         # plt.show()
 
 if __name__ == "__main__":

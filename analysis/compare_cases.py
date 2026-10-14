@@ -607,7 +607,7 @@ def plot_scalar_summary(path_base: Path, rows: list[dict[str, object]]) -> None:
         ax.set_visible(False)
     fig.tight_layout()
     fig.savefig(path_base.with_suffix(".pdf"))
-    fig.savefig(path_base.with_suffix(".png"), dpi=300)
+    #fig.savefig(path_base.with_suffix(".png"), dpi=300)
     plt.close(fig)
 
 

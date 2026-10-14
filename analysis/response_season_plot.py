@@ -5,6 +5,7 @@ from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 import re
 from scipy.stats import ttest_1samp, ttest_ind
 from analysis.figure_style import COLORS, panel_label
@@ -47,7 +48,7 @@ def load_case_data(dir, response):
                 case_list.append(os.path.join(root, file))
     case_list.sort(key=lambda x: os.path.basename(x).lower())
     records = []
-    # Exclude first 5 years
+    # Exclude first 10 years
     case_list = case_list[120:]
     for case in case_list:
         year, month = case_month(case)
@@ -261,7 +262,9 @@ def main():
 
         plt.tight_layout(rect=[0.02, 0.09, 1, 0.98])
         # plt.tight_layout()
-        fig.savefig(f"fig/season/season_{response}.pdf")
+        output_path = Path("fig") / "season" / f"season_{response}.pdf"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(output_path)
         plt.close(fig)
         # plt.show()
 

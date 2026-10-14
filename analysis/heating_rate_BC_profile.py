@@ -3,6 +3,7 @@ from netCDF4 import Dataset as NetCDFFile
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from pathlib import Path
 from scipy.stats import ttest_1samp, ttest_ind
 import scipy.stats as stats
 from analysis.figure_style import panel_label
@@ -61,7 +62,9 @@ def vertical_plot_delta_no_sig(nc, data, label, name,
     # Layout and save (vector format, high res)
     plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=15, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f"fig/BC/BC_{name}.pdf", bbox_inches="tight")
+    output_path = Path("fig") / "BC" / f"BC_{name}.pdf"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path, bbox_inches="tight")
     # plt.show()
 
 def vertical_plot_delta_sig(nc, data, label, name, 
@@ -126,7 +129,9 @@ def vertical_plot_delta_sig(nc, data, label, name,
     # Layout and save (vector format, high res)
     plt.text(0.02, 1.05, label, transform=plt.gca().transAxes, fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f"fig/QRS/QRS_{name}.pdf", bbox_inches="tight")
+    output_path = Path("fig") / "QRS" / f"QRS_{name}.pdf"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path, bbox_inches="tight")
     # plt.show()
 
 def avg_case_data(dir_case, response, range_min, range_max):

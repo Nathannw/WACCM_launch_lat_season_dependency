@@ -15,6 +15,10 @@ from analysis import (
     strat_BC,
     response_data_table,
     response_ERF_table,
+    plot_altitude_vs_downrange,
+    plot_webcast_vs_max_pl_emissions,
+    year_round_pairwise_comparison,
+    compare_cases,
 )
 
 import warnings
@@ -25,10 +29,10 @@ tasks = [
     # ("Preparing Correlation Data for Northern Hemisphere...", lambda: correlation_data.main('NH', slice(49, None))),
     # ("Preparing Correlation Data for Southern Hemisphere...", lambda: correlation_data.main('SH', slice(16, 49))),
     # ("Preparing Correlation Data for South Pole...", lambda: correlation_data.main('SP', slice(0, 16))),
-    # ("Preparing Emission Burdens...", burden_dµ˜istribution_data.main),
+    # ("Preparing Emission Burdens...", burden_distribution_data.main),
     # ("Plotting Response...", response_plot.main),
-    ("Plotting Correlation...", correlation_plot.main),
-    ("Plotting Burden Distribution...", burden_distribution_plot.main),
+    # ("Plotting Correlation...", correlation_plot.main),
+    # ("Plotting Burden Distribution...", burden_distribution_plot.main),
     # ("Plotting Latitudinal Data...", response_latitude_plot.main),
     # ("Plotting Ice Cloud Figures...", response_lat_ice_cloud.main),
     # ("Plotting Seasonal Figures...", response_season_plot.main),
@@ -40,6 +44,10 @@ tasks = [
     # ("Table Data...", response_data_table.main),
     # ("ERF Table...", lambda: response_ERF_table.main(['FSNT', 'FLNT'])),
     # ("ERFC Table...", lambda: response_ERF_table.main(['FSNTC', 'FLNTC'])),
+    ("Plotting Altitude vs. Downrange...", plot_altitude_vs_downrange.main),
+    ("Plotting Webcast vs. Maximum-Payload Emissions...",plot_webcast_vs_max_pl_emissions.main,),
+    ("Running Year-Round Pairwise Comparisons...", year_round_pairwise_comparison.main),
+    ("Running Case Comparisons...", compare_cases.main),
 ]
 for message, func in tasks:
     print(message)
